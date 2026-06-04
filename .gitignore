@@ -1,0 +1,43 @@
+# Environment
+.env
+
+# Database
+db/
+
+# Data files
+data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Ollama cache
+*.bin
+
+# Shelve cache files
+*.dir
+*.bak
+data/openalex_cache*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Sentence transformers cache
+.cache/
+
+# Streamlit session
+*.pkl
