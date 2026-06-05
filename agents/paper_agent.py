@@ -64,20 +64,24 @@ def _parquet_exists_and_covers(path: Path, conferences: list[str], years: list[i
 # scraping helpers
 
 def _scrape_papers(conferences: list[str], years: list[int]) -> pd.DataFrame:
-    """
-    Collect raw DBLP papers for the requested conferences × years.
-    Mirrors collect_all_papers() from paper_pipeline but scoped to state inputs.
-    """
-    all_papers = []
+    from core.registry import get_conference
+    from pipeline.paper_pipeline import parse_pacmnet_xml
 
+    all_papers = []
     for conf_name in conferences:
-        conf_key = conf_name.lower()
-        print(f"\n[paper_agent] scraping {conf_name} for years {years}")
+        conf = get_conference(conf_name.lower())
+        source = conf.get("dblp_source", "conf") if conf else "conf"
+        conf_key = conf["dblp_key"] if conf else conf_name.lower()
+
+        print(f"\n[paper_agent] scraping {conf_name} (source={source}) for years {years}")
 
         for year in sorted(years):
-            papers = parse_dblp_xml(conf_name, conf_key, year)
+            if source == "pacmnet":
+                papers = parse_pacmnet_xml(conf_name, year)
+            else:
+                papers = parse_dblp_xml(conf_name, conf_key, year)
             all_papers.extend(papers)
-            time.sleep(random.uniform(3, 6))   # polite pacing
+            time.sleep(random.uniform(3, 6))
 
         print(f"[paper_agent] cooling down after {conf_name}…")
         time.sleep(random.uniform(10, 20))

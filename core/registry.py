@@ -1,4 +1,3 @@
-# core/registry.py
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -21,6 +20,7 @@ CREATE TABLE IF NOT EXISTS conferences (
     url                     TEXT,
     cfp_url                 TEXT,
     dblp_key                TEXT,
+    dblp_source             TEXT DEFAULT 'conf',
     venue_type              TEXT,
     topic_areas_seed        TEXT DEFAULT '[]',
     topic_areas_discovered  TEXT DEFAULT '[]',
@@ -59,10 +59,40 @@ SEED_DATA = [
         "url": "https://conferences.sigcomm.org/co-next/2026",
         "cfp_url": "https://conferences.sigcomm.org/co-next/2026/#!/cfp",
         "dblp_key": "conext",
+        "dblp_source": "pacmnet",
         "venue_type": "networking",
         "topic_areas_seed": ["networking", "protocols", "wireless", "CDN"],
         "typical_months": [6, 7],
-        "dblp_source": "pacmnet",
+        "cfp_deadlines_override": [
+            {"cycle": 1, "label": "Paper Registration", "date": "2025-12-05"},
+            {"cycle": 1, "label": "Paper Submission",   "date": "2025-12-12"},
+            {"cycle": 2, "label": "Paper Registration", "date": "2026-05-29"},
+            {"cycle": 2, "label": "Paper Submission",   "date": "2026-06-06"},
+        ],
+        "cfp_topics_override": [
+            "Content distribution and caching, e.g., CDN, peer-to-peer, overlays",
+            "Design, analysis, and evaluation of network architectures",
+            "Experience and lessons learned by deploying large-scale networked systems",
+            "Experience with applying machine learning, large language models (LLMs) and generative AI to networking problems",
+            "In-network computing, NFV and network programmability",
+            "Innovative uses of network data beyond communication",
+            "Network measurements and modeling",
+            "Internet economics and policy",
+            "Mobile and wireless network protocols and applications",
+            "Machine learning as applied to all layers of networking",
+            "Networked applications including XR, web, video, and online social networks",
+            "Network and systems for AI",
+            "Network aspects of datacenters, cloud computing, operating systems, virtualization",
+            "Network aspects of IoT",
+            "Network control and management, including SDN",
+            "Network, transport, and application-layer protocols",
+            "Next generation mobile networks",
+            "Reliability and availability of networks, protocols, and applications",
+            "Reproducibility of networking research",
+            "Routing and traffic engineering",
+            "Security and privacy aspects of network applications, protocols and systems",
+            "Sustainable (e.g., energy-efficient, carbon-efficient) computing and networking",
+        ],
     },
     {
         "name": "infocom",
@@ -122,7 +152,7 @@ SEED_DATA = [
 def get_connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # rows behave like dicts
+    conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -143,23 +173,26 @@ def _seed(conn: sqlite3.Connection) -> None:
         ).fetchone()
 
         if existing:
-            continue  # never overwrite existing records!
+            continue
 
         conn.execute("""
             INSERT INTO conferences (
                 name, full_name, url, cfp_url, dblp_key,
-                venue_type, topic_areas_seed, typical_months, added_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'seed')
+                dblp_source, venue_type, topic_areas_seed, typical_months,
+                cfp_deadlines_override, cfp_topics_override, added_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'seed')
         """, (
             conf["name"],
             conf["full_name"],
             conf["url"],
             conf["cfp_url"],
             conf["dblp_key"],
+            conf.get("dblp_source", "conf"),
             conf["venue_type"],
             json.dumps(conf["topic_areas_seed"]),
             json.dumps(conf["typical_months"]),
-            conf.get("dblp_source", "conf"),
+            json.dumps(conf.get("cfp_deadlines_override", [])),
+            json.dumps(conf.get("cfp_topics_override", [])),
         ))
 
     conn.commit()
@@ -174,9 +207,9 @@ def list_conferences() -> list[dict]:
     Use this when callers need more than basic metadata.
     """
     with get_connection() as conn:
-        rows = conn.execute("""
-            SELECT * FROM conferences ORDER BY name
-        """).fetchall()
+        rows = conn.execute(
+            "SELECT * FROM conferences ORDER BY name"
+        ).fetchall()
     return [_deserialize(dict(r)) for r in rows]
 
 
@@ -218,6 +251,7 @@ def add_conference(
         conn.commit()
     return get_conference(name)
 
+
 def delete_conference(name: str) -> bool:
     """Remove a conference from the registry. Returns True if a row was deleted."""
     with get_connection() as conn:
@@ -227,6 +261,7 @@ def delete_conference(name: str) -> bool:
         )
         conn.commit()
     return cur.rowcount > 0
+
 
 def update_discovered_topics(name: str, topics: list[str]) -> dict:
     with get_connection() as conn:
@@ -253,21 +288,6 @@ def update_cfp_url(name: str, cfp_url: str) -> dict:
         conn.commit()
     return get_conference(name)
 
-
-#  helpers
-
-def _deserialize(row: dict) -> dict:
-    """Parse JSON columns back to Python lists."""
-    for col in (
-        "topic_areas_seed",
-        "topic_areas_discovered",
-        "typical_months",
-        "cfp_deadlines_override",
-        "cfp_topics_override",
-    ):
-        if col in row and isinstance(row[col], str):
-            row[col] = json.loads(row[col])
-    return row
 
 def update_cfp_overrides(
     name: str,
@@ -298,3 +318,19 @@ def update_cfp_overrides(
         )
         conn.commit()
     return get_conference(name)
+
+
+# helpers
+
+def _deserialize(row: dict) -> dict:
+    """Parse JSON columns back to Python lists."""
+    for col in (
+        "topic_areas_seed",
+        "topic_areas_discovered",
+        "typical_months",
+        "cfp_deadlines_override",
+        "cfp_topics_override",
+    ):
+        if col in row and isinstance(row[col], str):
+            row[col] = json.loads(row[col])
+    return row

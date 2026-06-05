@@ -8,6 +8,10 @@ import streamlit as st
 from core.registry import list_conferences
 from main import run_pipeline
 from dashboard.persistence import save_state, load_state
+from core.registry import list_conferences, init_db
+
+# initialize the db first
+init_db()
 
 # page config
 st.set_page_config(
