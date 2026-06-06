@@ -16,5 +16,6 @@ streamlit==1.57.0
 tqdm==4.67.1
 urllib3==2.7.0
 pyarrow==24.0.0
+chromadb==1.5.9
 # Local LLM: requires Ollama running with llama3.1:8b
 # ollama pull llama3.1:8b

@@ -111,6 +111,21 @@ def paper_scraper_node(state: PipelineState) -> dict:
     # 1. Cache check
     if _parquet_exists_and_covers(ENRICHED_PATH, conferences, years):
         print(f"[paper_agent] cache hit — using existing parquet: {ENRICHED_PATH}")
+
+        # still chunk if chunks parquet is missing
+        if not CHUNKS_PATH.exists():
+            print(f"[paper_agent] chunks missing — building from cached parquet")
+            try:
+                df = pd.read_parquet(ENRICHED_PATH)
+                chunkable = df[df["abstract"].notna()].copy()
+                print(f"[paper_agent] chunking {len(chunkable)}/{len(df)} papers with abstracts")
+                chunks_df = create_chunks(chunkable)
+                CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
+                save_dataframe(chunks_df, CHUNKS_PATH)
+                print(f"[paper_agent] chunks saved: {len(chunks_df)} rows → {CHUNKS_PATH}")
+            except Exception as exc:
+                print(f"WARNING [paper_agent] chunking failed (non-fatal) — {exc}")
+
         return {"papers_df_path": str(ENRICHED_PATH)}
 
     print("[paper_agent] cache miss — starting full scrape + enrichment")
