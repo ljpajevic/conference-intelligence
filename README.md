@@ -1,21 +1,29 @@
 ### Overview
 
 Multi-agent research conference intelligence and recommendation system.
+
 The user provides a research description and the system scrapes paper metadata from academic conferences, discovers trends, fetches CFP deadlines, and recommends the best conferences to submit to. Built with LangGraph.
 
 Currently supported conferences: SIGCOMM, CoNEXT, IMC, MobiSys, MobiCom, EuroSys (ACM), INFOCOM, ICDCS (IEEE). Papers covered: 2023–2025.
 
 #### Architecture
 
-The pipeline consists of five agents in a sequential DAG, with a shared `PipelineState`.
-Each agent reads from the shared state, completes its own task, and writes results back.
+The system runs as two independent graphs sharing a common data layer.
 
+**Data graph** — run rarely, when you want fresh papers and CFPs:
 ```
-registry → paper_scraper → cfp_scraper → trend_analysis → relevance → END
+registry → paper_scraper → cfp_scraper → trend_analysis → END
 ```
+
+**Query graph** — run on demand, once per research description:
+```
+registry → relevance → END
+```
+
+The query graph reads from parquet and CFP cache produced by the data graph. No scraping happens during recommendations.
 
 ##### registry_agent.py
-First pipeline node. Resolves conference scope into fully populated metadata (URLs, DBLP keys, CFP URLs). Also exposes a conversational CLI for manual registry management. LLM: Ollama.
+First node in both graphs. Resolves conference scope into fully populated metadata (URLs, DBLP keys, CFP URLs). Also exposes a conversational CLI for manual registry management. LLM: Ollama.
 
 ##### paper_agent.py
 Scrapes paper metadata from DBLP, enriches abstracts via OpenAlex, computes and persists embeddings to parquet. No LLM. Smart cache per `(conference, year)` to avoid full re-scrape when only new conferences or years are added.
@@ -27,7 +35,7 @@ Fetches and parses CFP pages per conference, extracts deadlines and topic areas.
 Clusters papers per conference using KMeans, labels clusters and writes conference summaries (Groq), and interprets year-over-year trajectory (Ollama). Separates deterministic clustering from LLM-generated descriptions.
 
 ##### relevance_agent.py
-Ranks conferences against the user's research description using deterministic cosine similarity over papers and CFP topics. CFP-weighted scoring `(0.3 × paper + 0.7 × CFP`). LLM: Ollama for rationale only.
+Ranks conferences against the user's research description using deterministic cosine similarity over papers and CFP topics. CFP-weighted scoring `(0.3 × paper + 0.7 × CFP)`. LLM: Ollama for rationale only.
 
 #### Stack
 
@@ -41,7 +49,7 @@ Ranks conferences against the user's research description using deterministic co
 | Abstract enrichment | OpenAlex API |
 | Registry storage | SQLite |
 | Data storage | Parquet |
-| Caching | File-based JSON `(core/cache.py`) |
+| Caching | File-based JSON (`core/cache.py`) |
 | Runtime | Python 3.11+ |
 
 #### Quick Start
@@ -55,7 +63,10 @@ Ranks conferences against the user's research description using deterministic co
 streamlit run dashboard/app.py
 ```
 
-Provide a short description of your research, select conferences and years, and press **Run Fresh** to start the pipeline.
+On first launch the registry is initialized automatically. Select conferences and years, then:
+
+1. Press **Refresh data** to scrape papers and CFPs. This takes several minutes and only needs to be repeated when you want fresher data.
+2. Enter a research description and press **Recommend** to score conferences against it. This is fast and can be re-run with different descriptions without re-scraping.
 
 <img src="assets/dashboard_start.png" alt="Dashboard - Start" width="600">
 
@@ -63,7 +74,7 @@ Provide a short description of your research, select conferences and years, and 
 
 The dashboard has four tabs: Recommendations, Trends, CFP Details, and Errors.
 
-**Recommendations** — highest-ranked conference matches with rationale and matching CFP topics.
+**Recommendations** — highest-ranked conference matches with rationale and matching CFP topics. Re-run with any research description without touching the underlying data.
 
 **Trends** — most popular themes per conference, year over year.
 
@@ -71,12 +82,11 @@ The dashboard has four tabs: Recommendations, Trends, CFP Details, and Errors.
 
 **Errors** — any errors accumulated during the pipeline run, such as failed CFP fetches or missing abstracts.
 
-
 <img src="assets/dashboard_tabs.png" alt="Dashboard Tabs" width="600">
 
 #### Known Limitations
 
 - USENIX-published venues (NSDI, OSDI, USENIX Security) not supported due to insufficient abstract coverage across enrichment sources
 - Poster and demo filtering uses a 4-page threshold; would need recalibration for venues with very short full papers
-- Streamlit "Run Fresh" cannot be cancelled mid-execution from the UI
+- **Refresh data** cannot be cancelled mid-execution from the UI; kill the process from the terminal if needed
 - Cache check in `paper_agent` triggers a full re-scrape if any `(conference, year)` combination is missing; missing slices are not fetched incrementally
