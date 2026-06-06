@@ -7,6 +7,10 @@ import streamlit as st
 
 from core.registry import list_conferences, init_db
 from main import run_data_pipeline, run_recommendations
+
+from rag.rag_pipeline import ask, corpus_ready
+from rag.retriever import index_exists
+
 from dashboard.persistence import (
     save_data_state, load_data_state,
     save_recommendations, load_recommendations,
@@ -187,10 +191,11 @@ if st.session_state.data_result is None and st.session_state.rec_result is None:
 
 # Tabs
 
-tab_recs, tab_trends, tab_cfp, tab_errors = st.tabs([
+tab_recs, tab_trends, tab_cfp, tab_insights, tab_errors = st.tabs([
     "Recommendations",
     "Trends",
     "CFP Details",
+    "Insights",
     "Errors",
 ])
 
@@ -327,8 +332,68 @@ with tab_cfp:
                 else:
                     st.caption("_(no topics extracted)_")
 
+# Tab 4 - Insights
 
-# Tab 4 - Errors
+with tab_insights:
+    if not corpus_ready():
+        st.warning("No corpus available. Run **Refresh data** first to build the paper index.")
+    else:
+        if not index_exists():
+            st.info("Index will be built on your first query. This takes a minute.")
+
+        query = st.text_input(
+            "Ask a question about the research corpus",
+            placeholder="e.g. What approaches exist for offloading compute to the edge?",
+        )
+
+        with st.expander("Filters (optional)"):
+            filter_confs = st.multiselect(
+                "Conferences", options=available_confs, default=[]
+            )
+            filter_years = st.multiselect(
+                "Years", options=[2023, 2024, 2025], default=[]
+            )
+
+        ask_clicked = st.button("Ask", type="primary")
+
+        if ask_clicked:
+            if not query.strip():
+                st.warning("Please enter a question.")
+            else:
+                with st.spinner("Retrieving and generating answer..."):
+                    result = ask(
+                        query=query,
+                        conferences=filter_confs or None,
+                        years=filter_years or None,
+                    )
+
+                if not result["grounded"]:
+                    st.warning("No closely related papers found in the corpus for this question.")
+                else:
+                    st.markdown("### Answer")
+                    st.write(result["answer"])
+
+                    sources = result["sources"]
+                    if sources:
+                        st.markdown("### Sources")
+                        for s in sources:
+                            doi_link = f" — [DOI]({s['doi']})" if s["doi"] else ""
+                            st.markdown(
+                                f"- **{s['paper_title']}** "
+                                f"({s['conference'].upper()} {s['year']}){doi_link}"
+                            )
+
+                    with st.expander("Retrieved chunks"):
+                        for chunk in result["chunks"]:
+                            st.markdown(
+                                f"**{chunk['paper_title']}** "
+                                f"({chunk['conference'].upper()} {chunk['year']}) "
+                                f"— similarity: {chunk['similarity']}"
+                            )
+                            st.caption(chunk["text"])
+                            st.divider()
+
+# Tab 5 - Errors
 
 with tab_errors:
     data_errors = (st.session_state.data_result or {}).get("errors", [])

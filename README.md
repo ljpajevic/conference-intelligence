@@ -50,6 +50,7 @@ Ranks conferences against the user's research description using deterministic co
 | Registry storage | SQLite |
 | Data storage | Parquet |
 | Caching | File-based JSON (`core/cache.py`) |
+| Vector store | ChromaDB (persistent, local) |
 | Runtime | Python 3.11+ |
 
 #### Quick Start
@@ -72,13 +73,15 @@ On first launch the registry is initialized automatically. Select conferences an
 
 #### Dashboard
 
-The dashboard has four tabs: Recommendations, Trends, CFP Details, and Errors.
+The dashboard has five tabs: Recommendations, Trends, CFP Details, Insights, and Errors.
 
 **Recommendations** — highest-ranked conference matches with rationale and matching CFP topics. Re-run with any research description without touching the underlying data.
 
 **Trends** — most popular themes per conference, year over year.
 
 **CFP Details** — trending topics and submission deadlines per conference.
+
+**Insights** - RAG-powered querying of the paper corpus, with strictly grounded responses and explicit no-result handling.
 
 **Errors** — any errors accumulated during the pipeline run, such as failed CFP fetches or missing abstracts.
 

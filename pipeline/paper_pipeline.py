@@ -443,7 +443,7 @@ def create_chunks(df: pd.DataFrame) -> pd.DataFrame:
         split_texts = splitter.split_text(doc)
         for i, chunk in enumerate(split_texts):
             chunks.append({
-                "chunk_id": f"{row['conference']}_{row['year']}_{row['title'][:40]}_{i}",
+                "chunk_id": f"{row['conference']}_{row['year']}_{row.name}_{i}",
                 "paper_title": row["title"],
                 "conference": row["conference"],
                 "year": row["year"],
