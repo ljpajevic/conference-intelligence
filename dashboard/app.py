@@ -5,19 +5,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import streamlit as st
 
-from core.registry import list_conferences
-from main import run_pipeline
-from dashboard.persistence import save_state, load_state
 from core.registry import list_conferences, init_db
-
-# initialize the db first
-init_db()
+from main import run_data_pipeline, run_recommendations
+from dashboard.persistence import (
+    save_data_state, load_data_state,
+    save_recommendations, load_recommendations,
+)
 
 # page config
 st.set_page_config(
     page_title="Conference Intelligence",
     layout="wide",
 )
+
+init_db()
 
 st.title("Conference Intelligence")
 st.caption(
@@ -55,86 +56,133 @@ with st.sidebar:
     st.divider()
     st.subheader("Pipeline")
 
-    col1, col2 = st.columns(2)
-    with col1:
+    col_load, col_data, col_rec = st.columns(3)
+    with col_load:
         load_clicked = st.button("Load cached", use_container_width=True)
-    with col2:
-        run_clicked = st.button("Run fresh", type="primary", use_container_width=True)
-    st.caption("⚠️ Fresh runs cannot be cancelled mid-pipeline. They take a few minutes.")
+    with col_data:
+        data_clicked = st.button("Refresh data", use_container_width=True)
+    with col_rec:
+        rec_clicked = st.button("Recommend", type="primary", use_container_width=True)
+
+    st.caption("⚠️ Refresh data scrapes papers and CFPs — takes several minutes and cannot be cancelled from the UI.")
 
 
-# pipeline execution/state loading
+# session state init
 
-if "result" not in st.session_state:
-    st.session_state.result = None
-    st.session_state.inputs = None
-    st.session_state.timestamp = None
+for key, default in [
+    ("data_result", None),
+    ("data_inputs", None),
+    ("data_timestamp", None),
+    ("rec_result", None),
+    ("rec_inputs", None),
+    ("rec_timestamp", None),
+    ("pipeline_running", False),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
+
+
+# load cached
 
 if load_clicked:
-    payload = load_state()
-    if payload is None:
-        st.sidebar.warning("No cached run found.")
+    data_payload = load_data_state()
+    rec_payload  = load_recommendations()
+
+    if data_payload:
+        st.session_state.data_result    = data_payload["result"]
+        st.session_state.data_inputs    = data_payload["inputs"]
+        st.session_state.data_timestamp = data_payload["timestamp"]
+
+    if rec_payload:
+        st.session_state.rec_result    = rec_payload["result"]
+        st.session_state.rec_inputs    = rec_payload["inputs"]
+        st.session_state.rec_timestamp = rec_payload["timestamp"]
+
+    if data_payload or rec_payload:
+        st.sidebar.success("Cached state loaded.")
     else:
-        st.session_state.result    = payload["result"]
-        st.session_state.inputs    = payload["inputs"]
-        st.session_state.timestamp = payload["timestamp"]
-        st.sidebar.success(f"Loaded cached run from {payload['timestamp']}")
+        st.sidebar.warning("No cached run found.")
 
-if "pipeline_running" not in st.session_state:
-    st.session_state.pipeline_running = False
 
-if run_clicked and not st.session_state.pipeline_running:
-    if not description.strip():
-        st.sidebar.error("Please enter a research description.")
-    elif not conferences:
+# refresh data pipeline
+
+if data_clicked and not st.session_state.pipeline_running:
+    if not conferences:
         st.sidebar.error("Please select at least one conference.")
     else:
         st.session_state.pipeline_running = True
-        with st.spinner("Running pipeline — once started, this cannot be cancelled from the UI."):
+        with st.spinner("Running data pipeline — scraping papers and CFPs. This takes several minutes."):
             try:
-                result = run_pipeline(
-                    user_research_description=description,
+                result = run_data_pipeline(
                     conferences=conferences,
                     years=years,
                 )
             finally:
                 st.session_state.pipeline_running = False
-        inputs = {
-            "description":  description,
-            "conferences":  conferences,
-            "years":        years,
-        }
-        save_state(result, inputs)
-        st.session_state.result    = result
-        st.session_state.inputs    = inputs
-        st.session_state.timestamp = "just now"
-        st.sidebar.success("Pipeline complete.")
 
-# show current input in sidebar
-if st.session_state.inputs:
-    with st.sidebar:
-        st.divider()
-        st.caption("**Loaded run**")
-        st.caption(f"From: {st.session_state.timestamp}")
-        st.caption(f"Description: {st.session_state.inputs['description'][:80]}…")
+        inputs = {"conferences": conferences, "years": years}
+        save_data_state(result, inputs)
+        st.session_state.data_result    = result
+        st.session_state.data_inputs    = inputs
+        st.session_state.data_timestamp = "just now"
+        st.sidebar.success("Data pipeline complete.")
+
+
+# run recommendations
+
+if rec_clicked and not st.session_state.pipeline_running:
+    if not description.strip():
+        st.sidebar.error("Please enter a research description.")
+    elif st.session_state.data_result is None:
+        st.sidebar.error("No data available. Run 'Refresh data' first or load a cached run.")
+    else:
+        st.session_state.pipeline_running = True
+        with st.spinner("Scoring conferences against your research description..."):
+            try:
+                result = run_recommendations(
+                    user_research_description=description,
+                    conferences=conferences,
+                    papers_df_path=st.session_state.data_result.get("papers_df_path", ""),
+                    cfp_data=st.session_state.data_result.get("cfp_data", {}),
+                )
+            finally:
+                st.session_state.pipeline_running = False
+
+        inputs = {"description": description, "conferences": conferences}
+        save_recommendations(result, inputs)
+        st.session_state.rec_result    = result
+        st.session_state.rec_inputs    = inputs
+        st.session_state.rec_timestamp = "just now"
+        st.sidebar.success("Recommendations complete.")
+
+
+# sidebar status
+
+with st.sidebar:
+    st.divider()
+    if st.session_state.data_inputs:
+        st.caption("**Data**")
+        st.caption(f"From: {st.session_state.data_timestamp}")
         st.caption(
-            f"Confs: {len(st.session_state.inputs['conferences'])} · "
-            f"Years: {st.session_state.inputs['years']}"
+            f"Confs: {len(st.session_state.data_inputs['conferences'])} · "
+            f"Years: {st.session_state.data_inputs['years']}"
         )
+    if st.session_state.rec_inputs:
+        st.caption("**Recommendations**")
+        st.caption(f"From: {st.session_state.rec_timestamp}")
+        st.caption(f"Description: {st.session_state.rec_inputs['description'][:60]}…")
 
 
 # empty state
 
-if st.session_state.result is None:
+if st.session_state.data_result is None and st.session_state.rec_result is None:
     st.info(
-        "No pipeline results loaded yet. "
+        "No data loaded. "
         "Choose **Load cached** to load the last run, "
-        "or **Run fresh** to start a new analysis."
+        "**Refresh data** to scrape fresh papers and CFPs, "
+        "or **Recommend** to score conferences against your research description (requires data)."
     )
     st.stop()
-
-
-result = st.session_state.result
 
 
 # Tabs
@@ -150,12 +198,14 @@ tab_recs, tab_trends, tab_cfp, tab_errors = st.tabs([
 # Tab 1 - Recommendations
 
 with tab_recs:
-    recs = result.get("recommendations", [])
+    recs = (st.session_state.rec_result or {}).get("recommendations", [])
 
     if not recs:
-        st.warning("No recommendations available.")
+        st.info("No recommendations yet. Enter a research description and click **Recommend**.")
     else:
         st.subheader(f"Ranked by relevance — {len(recs)} conferences")
+        if st.session_state.rec_inputs:
+            st.caption(f"For: {st.session_state.rec_inputs['description']}")
 
         for i, r in enumerate(recs, start=1):
             with st.container(border=True):
@@ -174,14 +224,12 @@ with tab_recs:
                         st.caption("⚠️ CFP unavailable — score is paper-only")
 
                 with st.expander("Evidence"):
-                    titles = r.get("top_titles", [])
+                    titles     = r.get("top_titles", [])
                     cfp_topics = r.get("top_cfp_topics", [])
-
                     if titles:
                         st.markdown("**Top matching papers:**")
                         for t in titles:
                             st.markdown(f"- {t}")
-
                     if cfp_topics:
                         st.markdown("**Top matching CFP topics:**")
                         for t in cfp_topics:
@@ -191,10 +239,10 @@ with tab_recs:
 # Tab 2 - Trends
 
 with tab_trends:
-    trends = result.get("trends", {})
+    trends = (st.session_state.data_result or {}).get("trends", {})
 
     if not trends:
-        st.warning("No trend data available.")
+        st.info("No trend data available. Run **Refresh data** to generate trends.")
     else:
         for conf_name in sorted(trends.keys()):
             t = trends[conf_name]
@@ -205,7 +253,6 @@ with tab_trends:
                 else:
                     st.caption("_(no conference summary)_")
 
-                # clusters
                 clusters = t.get("clusters", [])
                 if clusters:
                     st.markdown("##### Clusters")
@@ -215,15 +262,12 @@ with tab_trends:
                             with cl_col1:
                                 st.markdown(f"**{c.get('label', 'Untitled')}**")
                                 st.caption(c.get("summary", ""))
-                                titles = c.get("representative_titles", [])
-                                if titles:
-                                    for tit in titles:
-                                        st.markdown(f"- {tit}")
+                                for tit in c.get("representative_titles", []):
+                                    st.markdown(f"- {tit}")
                             with cl_col2:
                                 st.metric("Papers", c.get("size", 0))
 
-                # trajectory
-                traj = t.get("trajectory", {})
+                traj   = t.get("trajectory", {})
                 counts = traj.get("counts", {})
                 interpretation = traj.get("interpretation", "")
 
@@ -231,8 +275,6 @@ with tab_trends:
                     st.markdown("##### Year-over-year")
                     if interpretation:
                         st.write(interpretation)
-
-                    # build a DataFrame for st.line_chart
                     rows = []
                     for label, year_counts in counts.items():
                         for year, n in year_counts.items():
@@ -247,19 +289,18 @@ with tab_trends:
                         st.line_chart(chart_df)
 
 
-# Tab 3: CFP Details
+# Tab 3 - CFP Details
 
 with tab_cfp:
-    cfp = result.get("cfp_data", {})
+    cfp = (st.session_state.data_result or {}).get("cfp_data", {})
 
     if not cfp:
-        st.warning("No CFP data available.")
+        st.info("No CFP data available. Run **Refresh data** to scrape CFPs.")
     else:
         for conf_name in sorted(cfp.keys()):
             entry = cfp[conf_name]
             with st.container(border=True):
                 col_a, col_b = st.columns([2, 1])
-
                 with col_a:
                     st.markdown(f"### {conf_name.upper()}")
                     url = entry.get("url")
@@ -276,26 +317,27 @@ with tab_cfp:
 
                 if deadlines:
                     st.markdown("**Deadlines:**")
-                    df = pd.DataFrame(deadlines)
-                    st.dataframe(df, use_container_width=True, hide_index=True)
+                    st.dataframe(pd.DataFrame(deadlines), use_container_width=True, hide_index=True)
                 else:
                     st.caption("_(no deadlines extracted)_")
 
                 if topics:
                     st.markdown("**Topics:**")
-                    # Render as a wrapping list
                     st.write(", ".join(topics))
                 else:
                     st.caption("_(no topics extracted)_")
 
 
-# Tab 4: Errors
+# Tab 4 - Errors
 
 with tab_errors:
-    errors = result.get("errors", [])
+    data_errors = (st.session_state.data_result or {}).get("errors", [])
+    rec_errors  = (st.session_state.rec_result or {}).get("errors", [])
+    errors = data_errors + rec_errors
+
     if not errors:
-        st.success("No errors in this run.")
+        st.success("No errors in the last run.")
     else:
-        st.warning(f"{len(errors)} error(s) during pipeline execution:")
+        st.warning(f"{len(errors)} error(s):")
         for e in errors:
             st.code(e, language=None)
