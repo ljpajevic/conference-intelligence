@@ -53,8 +53,8 @@ with st.sidebar:
 
     years = st.multiselect(
         "Years (historical papers)",
-        options=[2023, 2024, 2025, 2026],
-        default=[2023, 2024, 2025],
+        options=[2022, 2023, 2024, 2025, 2026],
+        default=[2023, 2024, 2025, 2026],
     )
 
     st.divider()

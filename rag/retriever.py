@@ -13,10 +13,9 @@ CHUNKS_PATH = BASE_DIR / "data" / "chunks" / "networking_chunks.parquet"
 CHROMA_DIR  = BASE_DIR / "data" / "chroma"
 COLLECTION  = "conference_papers"
 
-# similarity threshold below which retrieval is considered empty
-MIN_SIMILARITY = 0.0 # 0.25
-
 CHROMA_BATCH_SIZE = 5000
+MIN_SIMILARITY    = 0.6
+
 
 def _get_collection() -> chromadb.Collection:
     """Return the Chroma collection, creating and indexing it if needed."""
@@ -37,11 +36,6 @@ def _get_collection() -> chromadb.Collection:
         metadata={"hnsw:space": "cosine"},
     )
 
-    # embed in batches and add to collection
-    texts = df["text"].tolist()
-    embeddings = compute_embeddings(texts)
-
-    # get embedgins in batches
     for start in range(0, len(df), CHROMA_BATCH_SIZE):
         batch = df.iloc[start:start + CHROMA_BATCH_SIZE]
         batch_embeddings = compute_embeddings(batch["text"].tolist())
@@ -60,6 +54,8 @@ def _get_collection() -> chromadb.Collection:
             ],
         )
         print(f"[retriever] indexed {min(start + CHROMA_BATCH_SIZE, len(df))}/{len(df)} chunks")
+
+    print(f"[retriever] index complete: {len(df)} chunks")
     return collection
 
 
@@ -81,15 +77,9 @@ def retrieve(
     """
     Embed query and retrieve top-k chunks from Chroma.
 
-    Args:
-        query:       Natural language question.
-        top_k:       Number of chunks to retrieve.
-        conferences: Optional list of conference names to filter by.
-        years:       Optional list of years to filter by.
-
     Returns:
-        List of dicts with keys: text, paper_title, conference, year, doi, similarity.
-        Empty list if no results exceed MIN_SIMILARITY.
+        List of dicts with keys: chunk_id, text, paper_title, conference,
+        year, doi, similarity. Empty list if no results exceed MIN_SIMILARITY.
     """
     collection = _get_collection()
 
@@ -114,16 +104,17 @@ def retrieve(
     )
 
     chunks = []
-    for doc, meta, dist in zip(
+    for chunk_id, doc, meta, dist in zip(
+        results["ids"][0],
         results["documents"][0],
         results["metadatas"][0],
         results["distances"][0],
     ):
-        # Chroma cosine distance = 1 - similarity
         similarity = 1.0 - dist
         if similarity < MIN_SIMILARITY:
             continue
         chunks.append({
+            "chunk_id":    chunk_id,
             "text":        doc,
             "paper_title": meta["paper_title"],
             "conference":  meta["conference"],
@@ -136,7 +127,6 @@ def retrieve(
 
 
 def index_exists() -> bool:
-    """Return True if the Chroma index has been built."""
     if not CHROMA_DIR.exists():
         return False
     client = chromadb.PersistentClient(

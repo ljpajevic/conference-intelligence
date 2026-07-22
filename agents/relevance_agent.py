@@ -17,7 +17,7 @@ TOP_K          = 20      # top-K most similar papers for paper score
 TOP_TITLES     = 5       # titles included in the rationale prompt
 TOP_CFP_TOPICS = 3       # CFP topics surfaced in rationale
 SCORE_SCALE    = 10.0    # final score range [0, SCORE_SCALE]
-ALPHA          = 0.3     # paper-weight: final = α*paper + (1-α)*cfp
+ALPHA          = 0.5     # paper-weight: final = α*paper + (1-α)*cfp
 
 
 # LLM setup
@@ -151,6 +151,7 @@ def _score_one_conference(
     user_embedding: np.ndarray,
     user_description: str,
     llm: ChatOllama,
+    alpha: float = ALPHA,
 ) -> RecommendationEntry:
     # paper signal
     if len(conf_df) > 0:
@@ -174,7 +175,7 @@ def _score_one_conference(
         final_score = topk_score
         cfp_available = False
     else:
-        final_score = ALPHA * topk_score + (1 - ALPHA) * cfp_score
+        final_score = alpha * topk_score + (1 - alpha) * cfp_score
         cfp_available = True
 
     # rationale
@@ -211,7 +212,7 @@ def relevance_node(state: PipelineState) -> dict:
     LangGraph node: rank conferences by combined paper + CFP relevance to
     the user's research description.
 
-    final_score = α * paper_topk_score + (1 - α) * cfp_max_score    (default α = 0.3)
+    final_score = α * paper_topk_score + (1 - α) * cfp_max_score    (default α = 0.5)
 
     Reads from state:
         user_research_description
@@ -258,6 +259,7 @@ def relevance_node(state: PipelineState) -> dict:
             rec = _score_one_conference(
                 conf_name, conf_df, cfp_topics,
                 user_embedding, user_description, llm,
+                alpha=ALPHA
             )
             recommendations.append(rec)
         except Exception as e:

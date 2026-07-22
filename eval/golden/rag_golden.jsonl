@@ -1,0 +1,28 @@
+# RAG golden set
+# Contains answerable (answerable=true) and unanswerable (answerable=false) questions
+# relevant_chunk_ids is optional but enables hit_rate/MRR. Copy real IDs from ChromaDB
+{"id": "q001", "question": "What approaches to edge computation offloading appeared at recent MobiCom and MobiSys?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q002", "question": "Which conferences published work on RDMA-based datacenter transport?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q003", "question": "Summarize trends in ML-driven congestion control across SIGCOMM years.", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q004", "question": "How are large language models being used in systems and networking research?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q005", "question": "What approaches have been proposed for reducing tail latency in datacenter networks?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q006", "question": "How has eBPF been used in recent networking systems research?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q007", "question": "How stable is Starlink connectivity according to recent measurements?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q008", "question": "What limitations of QUIC have been identified in recent systems research?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q009", "question": "How has eBPF expanded beyond packet filtering into general systems programming?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q010", "question": "What measurement methodologies have been used to study mobile network performance?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q011", "question": "What trends are emerging in encrypted transport protocol measurement?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q012", "question": "What limitations do authors acknowledge for network telemetry systems?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q013", "question": "What engineering trade-offs appear in recent in-network computing papers?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q014", "question": "What optimizations contribute most to reported performance gains?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q015", "question": "Which QUIC implementation parameters most affected throughput?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q016", "question": "How have researchers approached energy efficiency in networked systems?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q017", "question": "What networking challenges arise when training large models across distributed GPU clusters?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q018", "question": "What are the main bottlenecks identified in high-speed packet processing systems?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q019", "question": "How have researchers used LLMs to improve network configuration and management?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q020", "question": "What kernel bypass techniques have been used to achieve high-performance networking?", "relevant_chunk_ids": [], "answerable": true}
+{"id": "q021", "question": "What optimization algorithms are used in transformer model pretraining?", "relevant_chunk_ids": [], "answerable": false}
+{"id": "q022", "question": "What were the main research themes at SOSP 2024?", "relevant_chunk_ids": [], "answerable": false}
+{"id": "q023", "question": "How do SIGCOMM and OSDI papers differ in their approach to distributed consensus?", "relevant_chunk_ids": [], "answerable": false}
+{"id": "q024", "question": "Compare recent transformer architectures for natural language understanding.", "relevant_chunk_ids": [], "answerable": false}
+{"id": "q025", "question": "Summarize advances in compiler optimization for large language models", "relevant_chunk_ids": [], "answerable": false}

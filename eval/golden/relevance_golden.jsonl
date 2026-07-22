@@ -1,0 +1,7 @@
+# Relevance golden set
+# Hand-rolled set with the grades: 3 = clear best fit, 2 = solid, 1 = plausible, 0 = wrong venue.
+{"id": "r001", "research_description": "Measurement study of ML inference offloading latency across heterogeneous mobile and edge devices", "grades": {"mobicom": 3, "mobisys": 3, "sigcomm": 1, "imc": 2, "conext": 2, "infocom": 2, "eurosys": 1, "icdcs": 2}}
+{"id": "r002", "research_description": "Privacy-preserving crowd density estimation from passive Wi-Fi measurements", "grades": {"mobicom": 2, "mobisys": 2, "sigcomm": 0, "imc": 3, "conext": 1, "infocom": 2, "eurosys": 0, "icdcs": 1}}
+{"id": "r003", "research_description": "Measuring CDN Performance over Starlink", "grades": {"mobicom": 1, "mobisys": 1, "sigcomm": 3, "imc": 3, "conext": 2, "infocom": 0, "eurosys": 0, "icdcs": 0}}
+{"id": "r004", "research_description": "Modeling Cooperative Edge AI", "grades": {"mobicom": 1, "mobisys": 1, "sigcomm": 1, "imc": 0, "conext": 0, "infocom": 3, "eurosys": 0, "icdcs": 2}}
+{"id": "r005", "research_description": "Efficient memory management and scheduling for containerized microservices in cloud environments", "grades": {"mobicom": 0, "mobisys": 0, "sigcomm": 0, "imc": 0, "conext": 0, "infocom": 1, "eurosys": 3, "icdcs": 2}}
