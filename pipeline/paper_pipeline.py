@@ -243,6 +243,8 @@ def _is_full_paper(item) -> bool:
     that DBLP groups under <inproceedings> alongside main-track papers.
     """
     title = (item.findtext("title") or "").strip().lower()
+    if not title or len(title) < 5:
+        return False
     if any(title.startswith(p) for p in NON_PAPER_PREFIXES):
         return False
 
