@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # The test suite covers eval/metrics.py only: pure functions with no
+      # project imports. Installing requirements.txt would pull chromadb,
+      # sentence-transformers and torch for tests that need none of them, so
+      # CI installs only the tools it runs. Versions are pinned so a new lint
+      # rule cannot turn the badge red without a deliberate commit.
+      - name: Install tooling
+        run: pip install ruff==0.16.1 pytest==9.1.1
+
+      # Strict on the code CI actually covers.
+      - name: Lint (eval and tests)
+        run: ruff check eval/ tests/
+
+      # Repo-wide, errors only: syntax errors, undefined names, broken
+      # comparisons. Style findings in the agent and pipeline modules are
+      # deliberately not gating yet.
+      - name: Lint (repo-wide, errors only)
+        run: ruff check --select E9,F63,F7,F82 .
+
+      - name: Test
+        run: pytest -v
