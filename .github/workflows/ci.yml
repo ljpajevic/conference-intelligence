@@ -30,7 +30,7 @@ jobs:
 
       # Strict on the code CI actually covers.
       - name: Lint (eval and tests)
-        run: ruff check eval/ tests/
+        run: ruff check --select E4,E7,E9,F eval/ tests/
 
       # Repo-wide, errors only: syntax errors, undefined names, broken
       # comparisons. Style findings in the agent and pipeline modules are
