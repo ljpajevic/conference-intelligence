@@ -1,3 +1,6 @@
+![CI](https://github.com/ljpajevic/conference-intelligence/actions/workflows/ci.yml/badge.svg)
+
+
 ### Overview
 
 Multi-agent research conference intelligence and recommendation system.
