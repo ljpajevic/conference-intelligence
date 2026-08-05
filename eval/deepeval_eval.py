@@ -10,11 +10,7 @@ Requires:
     DEEPEVAL_API_KEY environment variable (free tier sufficient).
     pip install deepeval==4.1.1
 """
-import os
 from dataclasses import dataclass, asdict
-from pathlib import Path
-
-from deepeval import evaluate
 from deepeval.metrics import (
     FaithfulnessMetric,
     AnswerRelevancyMetric,

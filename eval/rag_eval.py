@@ -19,8 +19,6 @@ import re
 from dataclasses import dataclass, asdict
 from pathlib import Path
 
-import numpy as np
-
 from . import adapters
 from .metrics import hit_rate, mrr, mean
 
