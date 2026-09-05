@@ -17,6 +17,7 @@ TOP_Q          = 0.10    # paper score = mean of each venue's top-decile similar
 MIN_K          = 10      # floor, so small venues are not scored on a handful of papers
 TOP_TITLES     = 5       # titles included in the rationale prompt
 TOP_CFP_TOPICS = 3       # CFP topics surfaced in rationale
+CFP_K          = 3       # CFP score = mean of the top-CFP_K topic similarities
 SCORE_SCALE    = 10.0    # final score range [0, SCORE_SCALE]
 ALPHA          = 0.5     # paper-weight: final = α*paper + (1-α)*cfp
 
@@ -75,8 +76,19 @@ def _compute_cfp_score(
 ) -> tuple[float, list[tuple[str, float]]]:
     """
     Returns (cfp_score, sorted_matches) where:
-      cfp_score    — max user-vs-topic cosine sim, rescaled to 0-10
+      cfp_score    — mean of the top-CFP_K user-vs-topic cosine sims, 0-10
       matches      — list of (topic, sim) sorted desc by sim
+
+    This was a plain max, which put the whole score on one topic's wording:
+    at 15 topics a max has sd 0.055 against 0.039 for the mean of the top 3,
+    on identical inputs. Mixing that variance into the paper signal degrades
+    the ranking, and the weight sweep declined monotonically as CFP weight
+    rose. Averaging the top few trades a little sensitivity for stability.
+
+    Note this does NOT fix the topic-count bias — venues list 10 to 22 topics
+    and a top-k statistic over so few still favours the longer lists (spread
+    ~0.04 on synthetic data, for max and mean-of-3 alike). Too small a range
+    for a quantile to help. Documented, not solved.
     """
     if not topics:
         return 0.0, []
@@ -84,13 +96,14 @@ def _compute_cfp_score(
     topic_embeddings = compute_embeddings(topics)
     sims = topic_embeddings @ user_embedding      # shape (n_topics,)
 
-    max_sim = float(sims.max())
+    k = min(CFP_K, len(sims))
+    topk_sim = float(np.sort(sims)[-k:].mean())
     matches = sorted(
         zip(topics, sims.tolist()),
         key=lambda x: x[1],
         reverse=True,
     )
-    return _rescale(max_sim), matches
+    return _rescale(topk_sim), matches
 
 
 # LLM rationale
