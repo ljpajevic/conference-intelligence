@@ -39,7 +39,7 @@ def main():
     weights    = None
     if not args.quick:
         print("Threshold sweep ...")
-        thresholds = rag_eval.threshold_sweep([0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
+        thresholds = rag_eval.threshold_sweep([0.4, 0.6, 0.8])
         print("Weight sweep ...")
         weights = relevance_eval.weight_sweep()
 
