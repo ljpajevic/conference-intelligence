@@ -19,7 +19,7 @@ TOP_TITLES     = 5       # titles included in the rationale prompt
 TOP_CFP_TOPICS = 3       # CFP topics surfaced in rationale
 CFP_K          = 3       # CFP score = mean of the top-CFP_K topic similarities
 SCORE_SCALE    = 10.0    # final score range [0, SCORE_SCALE]
-ALPHA          = 0.5     # paper-weight: final = α*paper + (1-α)*cfp
+ALPHA          = 0.85     # paper-weight: final = α*paper + (1-α)*cfp
 
 
 # LLM setup
