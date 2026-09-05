@@ -20,6 +20,8 @@ from core.cache import hash_content, cache_get, cache_set
 
 from json_repair import repair_json
 
+from config import GROQ_MODEL
+
 # config
 
 N_CLUSTERS       = 5    # per conference
@@ -30,9 +32,10 @@ MIN_PAPERS       = 5    # skip conference if fewer papers
 # LLM
 
 def _build_llm() -> ChatGroq:
-    return ChatGroq(model="llama-3.3-70b-versatile",
+    return ChatGroq(
+        model=GROQ_MODEL,
         temperature=0,
-        max_tokens=4096
+        max_tokens=4096,
     )
 
 def _build_local_llm() -> ChatOllama:
@@ -141,7 +144,7 @@ def _llm_label_clusters(
     )
 
     try:
-        response = llm.invoke([HumanMessage(content=prompt)], max_tokens=2048)
+        response = llm.invoke([HumanMessage(content=prompt)])
         parsed = json.loads(repair_json(response.content))
 
         labelled    = parsed.get("clusters", [])

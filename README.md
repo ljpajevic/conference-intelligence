@@ -96,6 +96,7 @@ The dashboard has five tabs: Recommendations, Trends, CFP Details, Insights, and
 - Poster and demo filtering uses a 4-page threshold; would need recalibration for venues with very short full papers
 - **Refresh data** cannot be cancelled mid-execution from the UI; kill the process from the terminal if needed
 - Cache check in `paper_agent` triggers a full re-scrape if any `(conference, year)` combination is missing; missing slices are not fetched incrementally
+- If a conference's CFP topics are missing, its score is based on papers alone instead of the mixed paper + CFP score. There's no warning this happened, so scores are not always comparable across conferences.
 
 
 #### Evaluation
@@ -117,8 +118,11 @@ Threshold calibration: raising similarity threshold from 0.25 to 0.60 reduced fa
 
 | Metric | Value |
 |---|---|
-| NDCG@3 | 0.758 |
+| NDCG@3 | 0.816 |
 | Precision@3 | 0.733 |
 
-Weight sweep over paper/CFP balance recalibrated from 0.3/0.7 to 0.5/0.5, improving NDCG@3 from 0.615 to 0.758.
+Weight sweep over paper/CFP balance recalibrated from 0.3/0.7 to 0.5/0.5.
+Current NDCG@3 of 0.816 was measured after fixing a CFP extraction bug that had been silently truncating topic lists.
+The sweep itself ran on the earlier, incomplete data and is due to be re-run.
+
 Threshold calibration results in [`eval/reports/`](eval/reports/).
