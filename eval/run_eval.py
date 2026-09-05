@@ -47,10 +47,14 @@ def main():
     ranking = relevance_eval.evaluate_ranking()
     print(f"  ndcg@3={ranking['ndcg@3']:.3f}  precision@3={ranking['precision@3']:.3f}")
 
+    from agents.relevance_agent import ALPHA
+
     path = report.write_report(
         rag, thresholds, ranking, weights,
         deepeval_summary=deepeval_summary,
-        config_extra={"top_k": args.top_k},
+        config_extra={"top_k": args.top_k,
+                      "alpha": ALPHA,
+                      "cfp_coverage": ranking.get("cfp_coverage")},
     )
     print(f"\nReport written: {path}")
 

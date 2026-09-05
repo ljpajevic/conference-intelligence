@@ -69,12 +69,28 @@ def write_report(rag_summary: dict | None,
 
     if ranking_summary:
         parts.append("## Conference relevance ranking\n")
-        parts.append(_table([{k: v for k, v in ranking_summary.items() if k != "cases"}]))
+        skip = {"cases", "paper_only"}
+        parts.append(_table([{k: v for k, v in ranking_summary.items()
+                              if k not in skip}]))
+        paper_only = ranking_summary.get("paper_only") or []
+        if paper_only:
+            parts.append(
+                "\n**Scores are not comparable across this ranking.** "
+                f"No CFP topics for: {', '.join(paper_only)}. "
+                "These were scored on papers alone, under a different formula "
+                "from the rest, and the paper/CFP weight does not apply to them.\n"
+            )
+        else:
+            parts.append("\nAll conferences scored with the mixed paper + CFP "
+                         "formula.\n")
 
     if weight_rows:
         parts.append("## Paper/CFP weight sweep\n")
         parts.append(_table(weight_rows))
-        parts.append("\nProduction uses 0.3/0.7 — the sweep either validates or "
+        alpha = (config_extra or {}).get("alpha")
+        prod = (f"Production uses {alpha}/{round(1 - alpha, 2)}"
+                if alpha is not None else "Production weights")
+        parts.append(f"\n{prod} — the sweep either validates or "
                      "improves that choice.\n")
 
     out.write_text("\n".join(parts))

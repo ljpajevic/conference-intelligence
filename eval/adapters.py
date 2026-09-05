@@ -14,6 +14,19 @@ class RetrievalResult:
     metadata: dict = field(default_factory=dict)
 
 
+@dataclass
+class RankedConference:
+    """One scored conference, carrying how its score was computed.
+
+    cfp_available is False when the conference had no CFP topics, in which
+    case _score_one_conference falls back to a paper-only score — a
+    different formula from the rest of the ranking.
+    """
+    conference: str
+    score: float
+    cfp_available: bool
+
+
 # RAG retrieval
 
 def retrieve(question: str, top_k: int = 5) -> list[RetrievalResult]:
@@ -74,11 +87,11 @@ def generate_answer(question: str, chunks: list[RetrievalResult],
 
 def rank_conferences(research_description: str,
                      paper_weight: float = 0.3,
-                     cfp_weight: float = 0.7) -> list[str]:
-    """Return conference names, best match first.
+                     cfp_weight: float = 0.7) -> list[RankedConference]:
+    """Return conferences, best match first.
     Weights parameterised so the eval can sweep them.
     """
-    from agents.relevance_agent import _score_one_conference, _build_local_llm
+    from agents.relevance_agent import _score_one_conference
     from core.tools import compute_embeddings
     from core.registry import list_conferences
     import pandas as pd
@@ -93,7 +106,6 @@ def rank_conferences(research_description: str,
     cfp_data = state["result"].get("cfp_data", {}) if state else {}
 
     user_embedding = compute_embeddings([research_description])[0]
-    llm = _build_local_llm()
 
     conferences = [c["name"] for c in list_conferences()]
     scores = []
@@ -101,21 +113,21 @@ def rank_conferences(research_description: str,
         conf_df = df[df["conference"].str.lower() == conf_name.lower()]
         cfp_topics = cfp_data.get(conf_name, {}).get("topics", []) or []
 
-        import agents.relevance_agent as ra
-        orig_alpha = ra.ALPHA
-        ra.ALPHA = paper_weight
-        try:
-            rec = _score_one_conference(
-                conf_name, conf_df, cfp_topics,
-                user_embedding, research_description, llm,
-            )
-        finally:
-            ra.ALPHA = orig_alpha
+        rec = _score_one_conference(
+            conf_name, conf_df, cfp_topics,
+            user_embedding, research_description, None,
+            alpha=paper_weight,
+            rationale=False,
+        )
 
-        scores.append((conf_name, rec["score"]))
+        scores.append(RankedConference(
+            conference=conf_name,
+            score=rec["score"],
+            cfp_available=rec["cfp_available"],
+        ))
 
-    scores.sort(key=lambda x: x[1], reverse=True)
-    return [name for name, _ in scores]
+    scores.sort(key=lambda r: r.score, reverse=True)
+    return scores
 
 # shared: embedding function
 

@@ -13,7 +13,8 @@ from core.tools import compute_embeddings
 
 # config
 
-TOP_K          = 20      # top-K most similar papers for paper score
+TOP_Q          = 0.10    # paper score = mean of each venue's top-decile similarities
+MIN_K          = 10      # floor, so small venues are not scored on a handful of papers
 TOP_TITLES     = 5       # titles included in the rationale prompt
 TOP_CFP_TOPICS = 3       # CFP topics surfaced in rationale
 SCORE_SCALE    = 10.0    # final score range [0, SCORE_SCALE]
@@ -38,6 +39,24 @@ def _rescale(sim: float) -> float:
     return max(0.0, min(SCORE_SCALE, (sim / 0.7) * SCORE_SCALE))
 
 
+def _paper_k(n: int) -> int:
+    """How many top papers feed the paper score, for a venue with n papers.
+
+    A FIXED k is a VARIABLE quantile: k=20 was the top 2% of infocom (993
+    papers) but the top 19% of conext (106). Because the tail of any
+    distribution sits higher than its body, that handed large venues a
+    structural bonus unrelated to fit — infocom took a top-3 slot in 9 of 10
+    golden cases, and dropped to 2.3 when every venue was subsampled to equal
+    size. Selecting a fixed QUANTILE makes the statistic comparable across
+    corpus sizes by construction.
+
+    MIN_K reintroduces a mild size bias below n = MIN_K/TOP_Q (100 papers at
+    the current settings), which is the lesser problem: without it a small
+    venue would be scored on one or two papers.
+    """
+    return max(MIN_K, min(n, int(round(TOP_Q * n))))
+
+
 def _compute_paper_scores(
     user_embedding: np.ndarray,
     conf_embeddings: np.ndarray,
@@ -45,7 +64,7 @@ def _compute_paper_scores(
     """Returns (mean_score, topk_score, raw_sims)."""
     sims = conf_embeddings @ user_embedding   # both normalized -> cosine
     mean_sim = float(sims.mean())
-    k = min(TOP_K, len(sims))
+    k = _paper_k(len(sims))
     topk_sim = float(np.sort(sims)[-k:].mean())
     return _rescale(mean_sim), _rescale(topk_sim), sims
 
@@ -150,9 +169,15 @@ def _score_one_conference(
     cfp_topics: list[str],
     user_embedding: np.ndarray,
     user_description: str,
-    llm: ChatOllama,
-    alpha: float = ALPHA,
+    llm: ChatOllama | None,
+    *,
+    alpha: float,
+    rationale: bool = True,
 ) -> RecommendationEntry:
+    if rationale and llm is None:
+        raise ValueError(
+            f"_score_one_conference({conf_name}): llm is required when rationale=True"
+        )
     # paper signal
     if len(conf_df) > 0:
         embeddings = np.stack(conf_df["embedding"].to_numpy())
@@ -178,12 +203,16 @@ def _score_one_conference(
         final_score = alpha * topk_score + (1 - alpha) * cfp_score
         cfp_available = True
 
-    # rationale
-    rationale = _generate_rationale(
+    # rationale — display text only; it never feeds into final_score.
+    # The eval skips it: a 5-point weight sweep is 200 calls whose output
+    # nothing reads. "" is deliberate — it is falsy, so test_pipeline's
+    # `bool(top.get("rationale"))` check still catches a skip that leaks
+    # into the production path.
+    rationale_text = _generate_rationale(
         llm, user_description, conf_name,
         topk_score, cfp_score, final_score,
         top_titles, top_cfp_matches,
-    )
+    ) if rationale else ""
 
     print(
         f"  [relevance_agent] {conf_name}: "
@@ -199,7 +228,7 @@ def _score_one_conference(
         "cfp_score":      round(cfp_score, 2),
         "mean_score":     round(mean_score, 2),
         "cfp_available":  cfp_available,
-        "rationale":      rationale,
+        "rationale":      rationale_text,
         "top_titles":     top_titles,
         "top_cfp_topics": [t for t, _ in top_cfp_matches],
     }

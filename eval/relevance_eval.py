@@ -39,31 +39,45 @@ def evaluate_ranking(k: int = 3, paper_weight: float | None = None, cfp_weight: 
     cfp_weight = cfp_weight if cfp_weight is not None else (1 - ALPHA)
     golden = load_golden()
     ndcgs, precs, per_case = [], [], []
+    paper_only_all: set[str] = set()
+    n_conferences = 0
 
     for case in golden:
         ranked = adapters.rank_conferences(case["research_description"],
                                            paper_weight=paper_weight,
                                            cfp_weight=cfp_weight)
         grades = {c.lower(): g for c, g in case["grades"].items()}
-        ranked_l = [c.lower() for c in ranked]
+        ranked_l = [r.conference.lower() for r in ranked]
+        paper_only = [r.conference.lower() for r in ranked if not r.cfp_available]
+        n_conferences = len(ranked)
+        paper_only_all.update(paper_only)
         relevant = {c for c, g in grades.items() if g >= 2}
         n = ndcg_at_k(ranked_l, grades, k)
         p = precision_at_k(ranked_l, relevant, k)
         ndcgs.append(n)
         precs.append(p)
         per_case.append({"case_id": case["id"], f"ndcg@{k}": n,
-                         f"precision@{k}": p, "top_ranked": ranked_l[:k]})
+                         f"precision@{k}": p, "top_ranked": ranked_l[:k],
+                         "paper_only": paper_only})
+
+    coverage = ((n_conferences - len(paper_only_all)) / n_conferences
+                if n_conferences else 0.0)
     return {
         "paper_weight": paper_weight,
         "cfp_weight": cfp_weight,
         f"ndcg@{k}": mean(ndcgs),
         f"precision@{k}": mean(precs),
+        "cfp_coverage": round(coverage, 3),
+        "paper_only": sorted(paper_only_all),
         "cases": per_case,
     }
 
 def weight_sweep(steps: int = 5, k: int = 3) -> list[dict]:
-    """Sweep the paper/CFP weight mix. Production uses 0.3/0.7 -- this
-    either validates that choice or finds a better one, with evidence.
+    """Sweep the paper/CFP weight mix against the golden set.
+
+    Production alpha lives in agents.relevance_agent.ALPHA; this either
+    validates that choice or finds a better one, with evidence. Runs with
+    rationale generation off, so it is CPU-bound cosine work, not LLM calls.
     """
     rows = []
     for i in range(steps):
