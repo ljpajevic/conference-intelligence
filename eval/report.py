@@ -49,7 +49,10 @@ def write_report(rag_summary: dict | None,
         parts.append(f"\nCases evaluated: {rag_summary['n_cases']}. "
                      "`false_answer_rate` = answers produced for questions the corpus "
                      "cannot answer (lower is better); `answer_coverage` = answerable "
-                     "questions actually answered (higher is better).\n")
+                     "questions actually answered (higher is better). `hit_rate` and "
+                     "`mrr` read 0 by construction: the RAG golden set carries no "
+                     "`relevant_chunk_ids`, so there is nothing for the retrieval-"
+                     "ranking metrics to score.\n")
 
     if deepeval_summary:
         parts.append("## DeepEval metrics\n")

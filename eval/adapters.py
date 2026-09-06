@@ -56,7 +56,7 @@ def generate_answer(question: str, chunks: list[RetrievalResult],
     """Produce the grounded answer the Insights tab would show.
 
     Returns None when retrieval confidence is below threshold (suppressed).
-    If threshold is None, uses the production default (MIN_SIMILARITY=0.25).
+    If threshold is None, uses the production default (MIN_SIMILARITY=0.60).
     """
     from rag.retriever import MIN_SIMILARITY
     from rag.generator import generate

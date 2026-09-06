@@ -38,14 +38,14 @@ Fetches and parses CFP pages per conference, extracts deadlines and topic areas.
 Clusters papers per conference using KMeans, labels clusters and writes conference summaries (Groq), and interprets year-over-year trajectory (Ollama). Separates deterministic clustering from LLM-generated descriptions.
 
 ##### relevance_agent.py
-Ranks conferences against the user's research description using deterministic cosine similarity over papers and CFP topics. CFP-weighted scoring `(0.3 × paper + 0.7 × CFP)`. LLM: Ollama for rationale only.
+Ranks conferences against the user's research description using deterministic cosine similarity over papers and CFP topics. Final score is `α × paper + (1-α) × CFP`, with `ALPHA = 0.85` (see Evaluation). Both components are size-normalised: the paper score is the mean of each venue's top-decile similarities rather than a fixed top-k, and the CFP score is the mean of the top 3 topic similarities rather than a single max. LLM: Ollama is for rationale only, doesn't enter the score.
 
 #### Stack
 
 | Layer | Choice |
 |---|---|
 | Agent framework | LangGraph 1.2.1 |
-| LLM (quality calls) | Groq `llama-3.3-70b-versatile` |
+| LLM (quality calls) | Groq `openai/gpt-oss-120b` |
 | LLM (quota-free calls) | Ollama `llama3.1:8b` |
 | Embeddings | `all-MiniLM-L6-v2` (sentence-transformers) |
 | Paper metadata | DBLP XML |
@@ -92,17 +92,23 @@ The dashboard has five tabs: Recommendations, Trends, CFP Details, Insights, and
 
 #### Known Limitations
 
-- USENIX-published venues (NSDI, OSDI, USENIX Security) not supported due to insufficient abstract coverage across enrichment sources
-- Poster and demo filtering uses a 4-page threshold; would need recalibration for venues with very short full papers
-- **Refresh data** cannot be cancelled mid-execution from the UI; kill the process from the terminal if needed
-- Cache check in `paper_agent` triggers a full re-scrape if any `(conference, year)` combination is missing; missing slices are not fetched incrementally
-- If a conference's CFP topics are missing, its score is based on papers alone instead of the mixed paper + CFP score. There's no warning this happened, so scores are not always comparable across conferences.
+- USENIX-published venues (NSDI, OSDI, USENIX Security) not supported due to insufficient abstract coverage across enrichment sources.
+- Poster and demo filtering uses a 4-page threshold; would need recalibration for venues with very short full papers.
+- **Refresh data** cannot be cancelled mid-execution from the UI; kill the process from the terminal if needed.
+- Cache check in `paper_agent` triggers a full re-scrape if any `(conference, year)` combination is missing; missing slices are not fetched incrementally.
+- Golden sets are small (10 relevance cases, 25 RAG cases) and graded by a single annotator. Swapping 5 cases for 10 moved NDCG@3 by ~0.05 on identical code, which is larger than most differences the weight sweep resolves; treat individual sweep points as indicative, not decisive.
+- Relevance grades are static, so the evaluation cannot reward the one thing CFP topics uniquely provide: what a venue wants *next* year. A venue that has shifted scope shows up in its CFP before it shows up in its published papers.
+- Venues list 10–22 CFP topics, and a top-k statistic over so few still mildly favours the longer lists (~0.04 on synthetic data). Too narrow a range for a quantile to fix; documented, not solved.
+- `MIN_K = 10` in the paper score reintroduces a small size bias for venues under ~100 papers. CoNEXT, the smallest at 106, sits just above that boundary
+Keep the four existing bullets above these. Delete the old "no warning this
+happened" bullet entirely — the dashboard flags it and eval reports carry
+`cfp_coverage`.
 
 
 #### Evaluation
 
-The system is evaluated using a hand-rolled harness (`eval/`) alongside [DeepEval](https://github.com/confident-ai/deepeval) for standard LLM metrics.
-Golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 5 expert-graded relevance cases.
+Hand-rolled harness (`eval/`), with [DeepEval](https://github.com/confident-ai/deepeval) wired in for standard LLM metrics but not yet run.
+Two golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 10 expert-graded relevance cases (single annotator).
 
 **RAG pipeline** (threshold=0.60, top-k=5):
 
@@ -112,17 +118,24 @@ Golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 5 expert-graded re
 | false_answer_rate | 0.200 |
 | groundedness | 0.826 |
 
-Threshold calibration: raising similarity threshold from 0.25 to 0.60 reduced false answers on unanswerable questions from 1.0 to 0.2 at a 25% coverage cost.
+`hit_rate` and `mrr` read 0 because the RAG golden set has no `relevant_chunk_ids` yet (populating them is open work).
 
-**Conference relevance ranking** (paper_weight=0.50, cfp_weight=0.50):
+**Conference relevance ranking** (paper_weight=0.85, cfp_weight=0.15):
 
 | Metric | Value |
 |---|---|
-| NDCG@3 | 0.816 |
-| Precision@3 | 0.733 |
+| NDCG@3 | 0.906 |
+| Precision@3 | 0.867 |
 
-Weight sweep over paper/CFP balance recalibrated from 0.3/0.7 to 0.5/0.5.
-Current NDCG@3 of 0.816 was measured after fixing a CFP extraction bug that had been silently truncating topic lists.
-The sweep itself ran on the earlier, incomplete data and is due to be re-run.
+**Corpus-size bias in the paper score.** The score was the mean of a venue's top-20 paper similarities, but a fixed count is a variable quantile. For the largest venue that's the top 2%, for the smallest the top 19%, so large venues got a bonus unrelated to fit. `scripts/check_size_bias.py` measures it by capping every venue to the same paper count. Measured on the eight-venue corpus, the largest held a top-3 slot in 9 of 10 golden cases and fell to 2.3 when capped. After switching to a fixed quantile (`TOP_Q = 0.10`) it reads 2 uncapped against 2.7 capped.
 
-Threshold calibration results in [`eval/reports/`](eval/reports/).
+
+**CFP topics add no measurable ranking value.** An 11-point weight sweep rises monotonically toward paper-only (0.834 at CFP-only against 0.932 at paper-only) and that held for two different CFP statistics, thus seems to be a property of the signal rather than the estimator. `ALPHA` is 0.85 rather than 1.0 deliberately: the gap is within the ~0.05 the golden set moves on its own, and CFP still supplies the rationale text and the dashboard's topic matches. It's also the only forward-looking signal here, which the golden set can't reward (due to static grades).
+
+
+##### Known gaps in the harness
+
+- The threshold sweep is inert at or below 0.6: `retrieve()` already filters at `MIN_SIMILARITY`, so lower sweep points change nothing. Needs `MIN_SIMILARITY` parameterised through the retrieval call.
+- DeepEval is wired in but has never been run.
+
+Reports in [`eval/reports/`](eval/reports/). Each carries a config fingerprint covering the embedding model, `top_k`, `ALPHA` and CFP coverage, so runs made under different scoring do not silently compare. Ranking numbers reproduce exactly across both pinned and older pandas/numpy versions.

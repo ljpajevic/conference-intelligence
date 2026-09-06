@@ -39,7 +39,9 @@ def main():
     weights    = None
     if not args.quick:
         print("Threshold sweep ...")
-        thresholds = rag_eval.threshold_sweep([0.4, 0.6, 0.8])
+        # NOTE: inert below MIN_SIMILARITY (0.6) — retrieve() filters before the eval
+        # sees chunks, so lower thresholds are no-ops. Fix: parameterise MIN_SIMILARITY.
+        thresholds = rag_eval.threshold_sweep([0.25, 0.4, 0.6, 0.8])
         print("Weight sweep ...")
         weights = relevance_eval.weight_sweep()
 
