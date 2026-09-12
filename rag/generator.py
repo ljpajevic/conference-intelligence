@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 
-OLLAMA_MODEL = "llama3.1:8b"
+from config import OLLAMA_BASE_URL, OLLAMA_MODEL
 
 _PROMPT = """\
 You are a research assistant with access to a corpus of academic papers from \
@@ -32,7 +32,7 @@ Answer:
 def _build_llm() -> ChatOllama:
     return ChatOllama(
         model=OLLAMA_MODEL,
-        base_url="http://localhost:11434",
+        base_url=OLLAMA_BASE_URL,
         temperature=0,
         num_ctx=8192,
     )
@@ -61,7 +61,12 @@ def generate(query: str, chunks: list[dict]) -> dict:
         Dict with keys:
             answer  — the generated answer string
             sources — deduplicated list of (paper_title, conference, year, doi)
-            grounded — True if chunks were available, False if answer is a fallback
+            grounded — True only if the model actually produced an answer.
+                       False when there were no chunks to ground against or when
+                       generation failed or came back empty.
+                       Callers (including the eval, via adapters.generate_answer)
+                       treat grounded=True as "an answer was produced"; a failure
+                       reported as True is counted as a real answer and scored.
     """
     if not chunks:
         return {
@@ -76,9 +81,20 @@ def generate(query: str, chunks: list[dict]) -> dict:
     llm = _build_llm()
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
-        answer   = response.content.strip()
+        answer   = (response.content or "").strip()
     except Exception as e:
-        answer = f"(Generation failed: {e})"
+        return {
+            "answer":   f"(Generation failed: {e})",
+            "sources":  [],
+            "grounded": False,
+        }
+
+    if not answer:
+        return {
+            "answer":   "(Generation returned no content.)",
+            "sources":  [],
+            "grounded": False,
+        }
 
     # deduplicate sources by paper title
     seen    = set()
