@@ -7,7 +7,7 @@ Multi-agent research conference intelligence and recommendation system.
 
 The user provides a research description and the system scrapes paper metadata from academic conferences, discovers trends, fetches CFP deadlines, and recommends the best conferences to submit to. Built with LangGraph.
 
-Currently supported conferences: SIGCOMM, CoNEXT, IMC, MobiSys, MobiCom, EuroSys (ACM), INFOCOM, ICDCS (IEEE). Papers covered: 2023–2025.
+Currently supported conferences: SIGCOMM, CoNEXT, IMC, MobiSys, MobiCom, EuroSys (ACM), INFOCOM, ICDCS (IEEE). Papers covered: 2022–2026.
 
 #### Architecture
 
@@ -99,10 +99,7 @@ The dashboard has five tabs: Recommendations, Trends, CFP Details, Insights, and
 - Golden sets are small (10 relevance cases, 25 RAG cases) and graded by a single annotator. Swapping 5 cases for 10 moved NDCG@3 by ~0.05 on identical code, which is larger than most differences the weight sweep resolves; treat individual sweep points as indicative, not decisive.
 - Relevance grades are static, so the evaluation cannot reward the one thing CFP topics uniquely provide: what a venue wants *next* year. A venue that has shifted scope shows up in its CFP before it shows up in its published papers.
 - Venues list 10–22 CFP topics, and a top-k statistic over so few still mildly favours the longer lists (~0.04 on synthetic data). Too narrow a range for a quantile to fix; documented, not solved.
-- `MIN_K = 10` in the paper score reintroduces a small size bias for venues under ~100 papers. CoNEXT, the smallest at 106, sits just above that boundary
-Keep the four existing bullets above these. Delete the old "no warning this
-happened" bullet entirely — the dashboard flags it and eval reports carry
-`cfp_coverage`.
+- `MIN_K = 10` in the paper score reintroduces a small size bias for venues under ~100 papers. CoNEXT, the smallest at 106, sits just above that boundary.
 
 
 #### Evaluation
