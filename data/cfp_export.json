@@ -1,0 +1,446 @@
+{
+  "generated": "2026-09-13T21:01:58+00:00",
+  "pipeline_run": "2026-09-13T20:51:28+00:00",
+  "venues": {
+    "conext": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2025-12-05",
+          "label": "Paper Registration"
+        },
+        {
+          "cycle": 1,
+          "date": "2025-12-12",
+          "label": "Paper Submission"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-05-29",
+          "label": "Paper Registration"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-06-06",
+          "label": "Paper Submission"
+        }
+      ],
+      "topics": [
+        "Content distribution and caching, e.g., CDN, peer-to-peer, overlays",
+        "Design, analysis, and evaluation of network architectures",
+        "Experience and lessons learned by deploying large-scale networked systems",
+        "Experience with applying machine learning, large language models (LLMs) and generative AI to networking problems",
+        "In-network computing, NFV and network programmability",
+        "Innovative uses of network data beyond communication",
+        "Network measurements and modeling",
+        "Internet economics and policy",
+        "Mobile and wireless network protocols and applications",
+        "Machine learning as applied to all layers of networking",
+        "Networked applications including XR, web, video, and online social networks",
+        "Network and systems for AI",
+        "Network aspects of datacenters, cloud computing, operating systems, virtualization",
+        "Network aspects of IoT",
+        "Network control and management, including SDN",
+        "Network, transport, and application-layer protocols",
+        "Next generation mobile networks",
+        "Reliability and availability of networks, protocols, and applications",
+        "Reproducibility of networking research",
+        "Routing and traffic engineering",
+        "Security and privacy aspects of network applications, protocols and systems",
+        "Sustainable (e.g., energy-efficient, carbon-efficient) computing and networking"
+      ],
+      "url": "https://conferences.sigcomm.org/co-next/2026/#!/cfp"
+    },
+    "eurosys": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2026-05-07",
+          "label": "Paper titles and abstracts due"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-05-14",
+          "label": "Full paper submissions due"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-07-29",
+          "label": "Reviews available"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-07-31",
+          "label": "Author responses due"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-08-21",
+          "label": "Notification to authors"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-09-17",
+          "label": "Paper titles and abstracts due"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-09-24",
+          "label": "Full Paper Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-09-25",
+          "label": "Camera-ready deadline"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-01-06",
+          "label": "Reviews available"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-01-08",
+          "label": "Author responses due"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-01-29",
+          "label": "Notification to authors"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-03-05",
+          "label": "Camera-ready deadline"
+        }
+      ],
+      "topics": [
+        "Operating systems",
+        "Distributed systems",
+        "Cloud computing and datacenter systems",
+        "File and storage systems",
+        "Networked systems",
+        "AI/ML systems",
+        "Language support and runtime systems",
+        "Systems security and privacy",
+        "Dependable systems",
+        "Analysis, testing, and verification of systems",
+        "Database systems and data analytics frameworks",
+        "Virtualization and virtualized systems",
+        "Mobile and pervasive systems",
+        "Parallelism, concurrency, and multicore systems",
+        "Real-time, embedded, and cyber-physical systems",
+        "Systems for emerging hardware, such as quantum computing"
+      ],
+      "url": "https://2027.eurosys.org/cfp.html#calls"
+    },
+    "icdcs": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2026-01-21",
+          "label": "Full Paper Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-27",
+          "label": "Author Notification"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-05-14",
+          "label": "Camera-Ready Submission"
+        }
+      ],
+      "topics": [
+        "Edge Computing",
+        "Mobile Computing",
+        "Distributed Computing",
+        "Integrating Distributed Systems with Cloud Computing",
+        "Fog Computing",
+        "Multi-Tier Computing",
+        "Over-the-Air Computation",
+        "Distributed Algorithms",
+        "Big Data",
+        "Models & Systems",
+        "Distributed Fault Tolerance and Dependable Systems",
+        "Distributed OS and Middleware",
+        "Internet of Things (IoT)",
+        "Cyber-Physical Systems (CPS)",
+        "Security, Privacy and Trust",
+        "Blockchains/Databases",
+        "AI/ML Driven Distributed Systems",
+        "Deployed/Emergent Applications & Infrastructures",
+        "Digital Twins Computing Systems",
+        "Real-Time Computing Distributed Systems"
+      ],
+      "url": "https://icdcs2026.icdcs.org/calls/call-for-papers/"
+    },
+    "imc": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2025-11-13",
+          "label": "Paper registration (with abstract)"
+        },
+        {
+          "cycle": 1,
+          "date": "2025-11-20",
+          "label": "Full Paper Submission"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-01-29",
+          "label": "Expression of Interest (Replicability Track)"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-02-03",
+          "label": "Early reject notification"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-03-02",
+          "label": "Notification for Replicability Track Expression of Interest"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-03-17",
+          "label": "Notification"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-14",
+          "label": "Shepherd approval and final camera ready submission"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-04-22",
+          "label": "Paper registration (with abstract, including invited papers to Replicability Track)"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-04-29",
+          "label": "Full Paper Submission"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-06-04",
+          "label": "One-shot revision resubmission deadline"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-06-25",
+          "label": "Early reject notification"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-08-04",
+          "label": "Notification"
+        },
+        {
+          "cycle": 2,
+          "date": "2026-09-01",
+          "label": "Shepherd approval and final camera ready submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-09-29",
+          "label": "Official publication date"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-10-12",
+          "label": "Conference start"
+        }
+      ],
+      "topics": [
+        "network structure and performance measurement",
+        "application and end-user behavior measurement",
+        "measurement-based modeling",
+        "monitoring and visualization tools",
+        "systems and algorithms based on measurements",
+        "theoretical analysis and modeling of networked systems",
+        "novel data collection, analysis, and storage methods",
+        "reappraisal of previous empirical measurements",
+        "future challenges and directions",
+        "Internet transit networks",
+        "edge networks (home, broadband, cellular)",
+        "data center and cloud networks",
+        "peer-to-peer and content distribution networks",
+        "software-defined networks",
+        "online social networks",
+        "online services and platforms",
+        "experimental and prototype networks"
+      ],
+      "url": "https://conferences.sigcomm.org/imc/2026/cfp"
+    },
+    "infocom": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2024-07-24",
+          "label": "Abstract Due"
+        },
+        {
+          "cycle": 1,
+          "date": "2024-07-31",
+          "label": "Full Paper Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2024-12-06",
+          "label": "Notification of Acceptance"
+        }
+      ],
+      "topics": [
+        "Artificial Intelligence/Machine learning for networking",
+        "Cellular wireless broadband systems, including 6G and beyond",
+        "Censorship circumvention and net neutrality",
+        "Challenging Network Environments (underwater, underground)",
+        "Cloud computing/mobile cloud computing",
+        "Cross-layer designs",
+        "Cyber-physical network systems",
+        "Datacenter networking",
+        "Dynamic spectrum sharing",
+        "Edge and fog computing/networking",
+        "Extremely high-frequency communications (mmWave, THz)",
+        "Fault tolerance, reliability, and survivability",
+        "Full duplex communication networks",
+        "Green networks",
+        "Information-centric networking",
+        "Interference management and mitigation",
+        "Internet architectures",
+        "Internet of Things",
+        "Large-scale MIMO-based networking",
+        "Localization and location-based services"
+      ],
+      "url": "https://infocom2025.ieee-infocom.org/authors/call-papers-main-conference"
+    },
+    "mobicom": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2026-09-02",
+          "label": "Full Paper Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-11-06",
+          "label": "Submission Deadline"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-11-19",
+          "label": "Acceptance Notification"
+        }
+      ],
+      "topics": [
+        "Wireless communication and networking",
+        "Physical and embodied AI for mobile systems",
+        "Applications of machine learning to mobile and wireless systems",
+        "Novel communication/sensing modalities and platforms",
+        "Advanced sensing/perception systems",
+        "Human-centric and interactive systems and media",
+        "Energy-efficiency, energy harvesting and resource-constrained systems",
+        "Edge computing and large-scale infrastructure",
+        "Security and privacy of mobile and wireless systems",
+        "Measurements and deployment"
+      ],
+      "url": "https://sigmobile.org/mobicom/2027/cfp.html"
+    },
+    "mobisys": {
+      "deadlines": [],
+      "topics": [
+        "New software systems for mobile computing (including architectures, operating systems, infrastructure support, and web)",
+        "Energy and resource management for mobile devices",
+        "Machine learning and AI for mobile devices",
+        "Novel human-mobile interaction techniques and experiences",
+        "Security and privacy in mobile systems",
+        "Wearable systems and applications",
+        "Vehicular, robotic, and drone systems",
+        "Virtual, augmented, and mixed reality systems",
+        "Context and location sensing systems",
+        "Application-focused mobile and wireless systems (i.e., systems for health, accessibility, sustainability, climate, buildings, agriculture, etc.)",
+        "Mobile and wireless systems in challenging environments (e.g., underwater, space, in-body)",
+        "Novel datasets for mobile and wireless systems",
+        "Wireless communication and sensing systems (including 5G/6G, millimeter-wave & THz, backscatter, LPWAN)",
+        "Experience with mobile applications, networks, and systems",
+        "Non-traditional topics that bring new perspectives to mobile computing"
+      ],
+      "url": "https://www.sigmobile.org/mobisys/2027/call_for_papers/"
+    },
+    "sigcomm": {
+      "deadlines": [
+        {
+          "cycle": 1,
+          "date": "2026-01-30",
+          "label": "Abstract registration deadline"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-02-06",
+          "label": "Paper submission deadline"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-02",
+          "label": "Early notification"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-27",
+          "label": "Rebuttal period start"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-29",
+          "label": "Rebuttal period end"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-05-11",
+          "label": "Review results notification"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-06-19",
+          "label": "One-shot revision deadline"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-06-29",
+          "label": "One-shot revision results notification"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-07-03",
+          "label": "Camera-ready deadline"
+        }
+      ],
+      "topics": [
+        "computer networks",
+        "wired and wireless technologies",
+        "network architecture",
+        "packet- and circuit-switched hardware and software",
+        "virtualization",
+        "mobility",
+        "resource management",
+        "performance",
+        "energy consumption and environmental impact",
+        "topology",
+        "robustness",
+        "security",
+        "diagnosis",
+        "verification",
+        "privacy",
+        "economics",
+        "evolution",
+        "interactions with applications",
+        "network life cycle",
+        "theory, analysis, experimentation, and AI/machine learning"
+      ],
+      "url": "https://conferences.sigcomm.org/sigcomm/2027/cfp/"
+    }
+  }
+}
