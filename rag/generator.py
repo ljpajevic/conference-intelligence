@@ -2,15 +2,15 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 
-from config import OLLAMA_BASE_URL, OLLAMA_MODEL
+from config import GROQ_MODEL
 
 _PROMPT = """\
 You are a research assistant with access to a corpus of academic papers from \
 networking and systems conferences (SIGCOMM, IMC, CoNEXT, INFOCOM, MobiCom, \
-MobiSys, EuroSys, ICDCS), covering 2023-2025.
+MobiSys, EuroSys, ICDCS), covering 2022-2026.
 
 A researcher has asked the following question:
 "{query}"
@@ -28,15 +28,12 @@ outside knowledge.
 Answer:
 """
 
-
-def _build_llm() -> ChatOllama:
-    return ChatOllama(
-        model=OLLAMA_MODEL,
-        base_url=OLLAMA_BASE_URL,
+def _build_llm() -> ChatGroq:
+    return ChatGroq(
+        model=GROQ_MODEL,
         temperature=0,
-        num_ctx=8192,
+        max_tokens=8192,
     )
-
 
 def _format_context(chunks: list[dict]) -> str:
     parts = []

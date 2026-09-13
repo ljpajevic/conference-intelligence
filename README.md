@@ -113,7 +113,7 @@ Two golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 10 expert-grad
 |---|---|
 | answer_coverage | 0.750 |
 | false_answer_rate | 0.200 |
-| groundedness | 0.826 |
+| groundedness | 0.818 |
 
 `hit_rate` and `mrr` read 0 because the RAG golden set has no `relevant_chunk_ids` yet (populating them is open work).
 
