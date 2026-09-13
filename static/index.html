@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conference Intelligence</title>
+<style>
+:root{
+  --paper:#F7F8FA;
+  --ink:#12161C;
+  --muted:#5B6673;
+  --rule:#DCE1E8;
+  --field:#FFFFFF;
+  --paper-sig:#2F3D9E;   /* published-paper signal */
+  --cfp-sig:#B4801F;     /* call-for-papers signal */
+  --warn:#8C2F2F;
+  --action:#B23A2E;
+  --serif:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:16px;line-height:1.55;
+  font-variant-numeric:tabular-nums;
+}
+.wrap{max-width:60rem;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+
+header{border-bottom:1px solid var(--rule);padding-bottom:1.25rem;margin-bottom:2rem}
+h1{font-family:var(--serif);font-weight:600;font-size:1.9rem;line-height:1.15;margin:0 0 .35rem}
+header p{margin:0;color:var(--muted);max-width:104ch}
+header p.scope{margin-top:.6rem;font-size:.92rem;max-width:104ch}
+
+.modes{display:flex;gap:.25rem;margin-bottom:1.5rem}
+.modes button{
+  font:inherit;background:none;border:1px solid transparent;border-radius:.3rem;
+  padding:.4rem .8rem;color:var(--muted);cursor:pointer;
+}
+.modes button[aria-selected="true"]{background:var(--field);border-color:var(--rule);color:var(--ink)}
+
+label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:.4rem}
+textarea,input[type=text]{
+  width:100%;font:inherit;background:var(--field);color:var(--ink);
+  border:1px solid var(--rule);border-radius:.3rem;padding:.7rem .8rem;resize:vertical;
+}
+textarea:focus-visible,input:focus-visible,button:focus-visible{
+  outline:2px solid var(--paper-sig);outline-offset:2px;
+}
+.row{display:flex;gap:.75rem;align-items:center;margin-top:.75rem;flex-wrap:wrap}
+.go{
+  font:inherit;font-weight:500;background:var(--action);color:#fff;
+  border:0;border-radius:.3rem;padding:.55rem 1.1rem;cursor:pointer;
+}
+.go[disabled]{opacity:.5;cursor:progress}
+.hint{color:var(--muted);font-size:.88rem}
+
+.msg{border-left:3px solid var(--warn);padding:.6rem .9rem;margin-top:1.5rem;color:var(--warn);background:var(--field)}
+.empty{color:var(--muted);margin-top:2.5rem;max-width:52ch}
+
+/* ranked venues */
+ol.venues{list-style:none;margin:2rem 0 0;padding:0;border-top:1px solid var(--rule)}
+ol.venues>li{border-bottom:1px solid var(--rule);padding:1.1rem 0}
+.head{display:grid;grid-template-columns:1.6rem 1fr auto;gap:.85rem;align-items:baseline}
+.rank{color:var(--muted);font-size:.95rem}
+.name{font-family:var(--serif);font-size:1.2rem;font-weight:600}
+.total{font-size:1.2rem}
+.total span{color:var(--muted);font-size:.85rem}
+
+.bar{display:flex;height:.5rem;margin:.7rem 0 .5rem;background:var(--rule);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%}
+.bar .p{background:var(--paper-sig)}
+.bar .c{background:var(--cfp-sig)}
+.split{display:flex;gap:1.25rem;font-size:.95rem;color:var(--muted);flex-wrap:wrap}
+.key{display:inline-flex;align-items:center;gap:.4rem}
+.key b{width:.55rem;height:.55rem;border-radius:1px;display:inline-block}
+.key .p{background:var(--paper-sig)}
+.key .c{background:var(--cfp-sig)}
+
+details{margin-top:.7rem}
+summary{cursor:pointer;font-size:.95rem;color:var(--paper-sig)}
+details ul{margin:.5rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:.92rem}
+details li{margin-bottom:.2rem}
+
+.why{
+  font:inherit;font-size:.9rem;margin-top:.7rem;background:var(--field);
+  border:1px solid var(--rule);border-radius:.3rem;padding:.35rem .75rem;cursor:pointer;color:var(--ink);
+}
+.why[disabled]{color:var(--muted);cursor:progress}
+.rationale{margin:.7rem 0 0;padding-left:.9rem;border-left:2px solid var(--cfp-sig);max-width:62ch}
+.rationale.err{border-color:var(--warn);color:var(--warn)}
+
+/* answer */
+.answer{margin-top:2rem;border-top:1px solid var(--rule);padding-top:1.5rem}
+.answer p{max-width:66ch}
+.sources{margin:1.25rem 0 0;padding:0;list-style:none;font-size:.92rem;color:var(--muted)}
+.sources li{padding:.35rem 0;border-top:1px solid var(--rule)}
+.sources a{color:var(--paper-sig)}
+.ungrounded{color:var(--warn)}
+
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:33rem){
+  .head{grid-template-columns:1.4rem 1fr;row-gap:.2rem}
+  .total{grid-column:2}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Where should this paper go?</h1>
+  <p>Ranks your research description against each venue's recent papers and its current call for papers.</p>
+  <p class="scope" id="scope"></p>
+</header>
+
+<div class="modes" role="tablist">
+  <button role="tab" id="tab-rank" aria-selected="true" aria-controls="panel-rank">Rank venues</button>
+  <button role="tab" id="tab-ask" aria-selected="false" aria-controls="panel-ask">Ask the corpus</button>
+</div>
+
+<section id="panel-rank" role="tabpanel" aria-labelledby="tab-rank">
+  <label for="desc">Describe your work</label>
+  <textarea id="desc" rows="3"
+    placeholder="e.g. computational edge offloading for AR applications"></textarea>
+  <div class="row">
+    <button class="go" id="rank-go">Recommend</button>
+    <span class="hint" id="rank-hint"></span>
+  </div>
+  <div id="rank-msg"></div>
+  <ol class="venues" id="venues"></ol>
+</section>
+
+<section id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" class="hidden">
+  <label for="q">Ask about the papers in the corpus</label>
+  <input type="text" id="q" placeholder="e.g. what approaches exist for in-network aggregation?">
+  <div class="row">
+    <button class="go" id="ask-go">Ask</button>
+    <span class="hint" id="ask-hint"></span>
+  </div>
+  <div id="ask-msg"></div>
+  <div id="answer"></div>
+</section>
+
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// The scorer combines the two signals as ALPHA*paper + (1-ALPHA)*cfp.
+// The bar shows each signal's actual contribution to the total, not the raw
+// scores, so a venue ranked mostly on its back catalogue looks different from
+// one ranked on its call for papers.
+const ALPHA = 0.85;
+
+async function call(path, body){
+  const r = await fetch(path, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok){
+    const d = data.detail;
+    throw new Error(Array.isArray(d) ? d.map(e => e.msg).join('; ') : (d || `Request failed (${r.status})`));
+  }
+  return data;
+}
+
+function showError(el, err){
+  el.innerHTML = `<div class="msg">${esc(err.message)}</div>`;
+}
+
+/* ---- tabs ---- */
+function selectTab(which){
+  const rank = which === 'rank';
+  $('#tab-rank').setAttribute('aria-selected', rank);
+  $('#tab-ask').setAttribute('aria-selected', !rank);
+  $('#panel-rank').classList.toggle('hidden', !rank);
+  $('#panel-ask').classList.toggle('hidden', rank);
+}
+$('#tab-rank').onclick = () => selectTab('rank');
+$('#tab-ask').onclick  = () => selectTab('ask');
+
+/* ---- rank ---- */
+function venueRow(v, i){
+  const paperPart = ALPHA * v.paper_score;
+  const cfpPart   = v.cfp_available ? (1 - ALPHA) * v.cfp_score : 0;
+  const li = document.createElement('li');
+  li.innerHTML = `
+    <div class="head">
+      <span class="rank">${i + 1}</span>
+      <span class="name">${esc(v.full_name || v.conference)}</span>
+      <span class="total">${v.score.toFixed(1)}<span> / 10</span></span>
+    </div>
+    <div class="bar" role="img"
+         aria-label="${esc(v.full_name || v.conference)}: ${v.score.toFixed(1)} out of 10, papers contribute ${paperPart.toFixed(1)}, call for papers ${cfpPart.toFixed(1)}">
+      <i class="p" style="width:${paperPart * 10}%"></i>
+      <i class="c" style="width:${cfpPart * 10}%"></i>
+    </div>
+    <div class="split">
+      <span class="key"><b class="p"></b>Recent papers ${v.paper_score.toFixed(1)}</span>
+      ${v.cfp_available
+        ? `<span class="key"><b class="c"></b>Call for papers ${v.cfp_score.toFixed(1)}</span>`
+        : `<span class="key">No call for papers found — ranked on papers alone</span>`}
+    </div>
+    ${v.top_titles.length ? `<details>
+      <summary>Closest papers</summary>
+      <ul>${v.top_titles.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </details>` : ''}
+    <button class="why">Why this venue?</button>
+    <div class="rationale hidden"></div>`;
+
+  const btn = li.querySelector('.why');
+  const out = li.querySelector('.rationale');
+  btn.onclick = async () => {
+    btn.disabled = true; btn.textContent = 'Writing…';
+    try{
+      const res = await call('/api/rationale', {
+        research_description: $('#desc').value.trim(), recommendation: v
+      });
+      out.textContent = res.rationale;
+      out.classList.remove('hidden','err');
+      btn.remove();
+    }catch(err){
+      out.textContent = err.message;
+      out.classList.remove('hidden'); out.classList.add('err');
+      btn.disabled = false; btn.textContent = 'Try again';
+    }
+  };
+  return li;
+}
+
+$('#rank-go').onclick = async () => {
+  const desc = $('#desc').value.trim();
+  const msg = $('#rank-msg'), list = $('#venues'), go = $('#rank-go'), hint = $('#rank-hint');
+  msg.innerHTML = ''; list.innerHTML = '';
+  if(desc.length < 10){
+    msg.innerHTML = `<div class="msg">Describe your work in a sentence or two (minimum 10 characters).</div>`;
+    return;
+  }
+  go.disabled = true; hint.textContent = 'Scoring venues…';
+  try{
+    const data = await call('/api/recommend', {research_description: desc});
+    data.recommendations.forEach((v, i) => list.appendChild(venueRow(v, i)));
+    hint.textContent = '';
+  }catch(err){ showError(msg, err); hint.textContent = ''; }
+  finally{ go.disabled = false; }
+};
+
+/* ---- ask ---- */
+$('#ask-go').onclick = async () => {
+  const q = $('#q').value.trim();
+  const msg = $('#ask-msg'), out = $('#answer'), go = $('#ask-go'), hint = $('#ask-hint');
+  msg.innerHTML = ''; out.innerHTML = '';
+  if(q.length < 5){
+    msg.innerHTML = `<div class="msg">Ask a full question — at least 5 characters.</div>`;
+    return;
+  }
+  go.disabled = true; hint.textContent = 'Searching the corpus…';
+  try{
+    const d = await call('/api/ask', {question: q});
+    out.innerHTML = `<div class="answer">
+      ${d.grounded ? '' : '<p class="ungrounded">The corpus does not support an answer to this.</p>'}
+      <p>${esc(d.answer)}</p>
+      ${d.sources.length ? `<ul class="sources">${d.sources.map(s => `<li>${
+        s.doi ? `<a href="https://doi.org/${esc(s.doi)}">${esc(s.paper_title)}</a>` : esc(s.paper_title)
+      } — ${esc(s.conference)} ${esc(s.year)}</li>`).join('')}</ul>` : ''}
+    </div>`;
+    hint.textContent = '';
+  }catch(err){ showError(msg, err); hint.textContent = ''; }
+  finally{ go.disabled = false; }
+};
+
+/* ---- corpus scope, read live so it stays true as venues are added ---- */
+fetch('/api/health').then(r => r.json()).then(h => {
+  const names = h.conferences.map(c => h.display[c] || c);
+  $('#scope').textContent = names.join(' · ');
+  $('#venues').innerHTML =
+    `<li class="empty">Paste an abstract or a few sentences about your work.</li>`;
+}).catch(() => {});
+</script>
+</body>
+</html>
