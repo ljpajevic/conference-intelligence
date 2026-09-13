@@ -6,11 +6,7 @@ import json
 import re
 import time
 import random
-import ssl
-import urllib3
 from datetime import date
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 import requests
 from bs4 import BeautifulSoup
@@ -54,18 +50,11 @@ HEADERS = {
 # HTTP helper
 
 def _safe_get_persistent(url: str, max_attempts: int = 3) -> requests.Response | None:
-    ctx = ssl.create_default_context()
-    ctx.set_ciphers("DEFAULT")
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
     session = requests.Session()
-    adapter = requests.adapters.HTTPAdapter()
-    session.mount("https://", adapter)
 
     for attempt in range(max_attempts):
         try:
-            r = session.get(url, headers=HEADERS, timeout=20, verify=False)
+            r = session.get(url, headers=HEADERS, timeout=20)
             if r.status_code == 200:
                 return r
             if r.status_code == 429:
@@ -86,18 +75,11 @@ def _safe_get(url: str, max_attempts: int = 3) -> requests.Response | None:
     GET with retries. Skips retry on 4xx errors (except 429), since those
     are not transient — retrying a 404 just wastes ~7s.
     """
-    ctx = ssl.create_default_context()
-    ctx.set_ciphers("DEFAULT")
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
     session = requests.Session()
-    adapter = requests.adapters.HTTPAdapter()
-    session.mount("https://", adapter)
 
     for attempt in range(max_attempts):
         try:
-            r = session.get(url, headers=HEADERS, timeout=20, verify=False)
+            r = session.get(url, headers=HEADERS, timeout=20)
 
             if r.status_code == 200:
                 return r

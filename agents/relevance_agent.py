@@ -4,9 +4,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 import pandas as pd
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 
+from config import GROQ_MODEL
 from core.state import PipelineState, RecommendationEntry
 from core.tools import compute_embeddings
 
@@ -19,25 +20,29 @@ TOP_TITLES     = 5       # titles included in the rationale prompt
 TOP_CFP_TOPICS = 3       # CFP topics surfaced in rationale
 CFP_K          = 3       # CFP score = mean of the top-CFP_K topic similarities
 SCORE_SCALE    = 10.0    # final score range [0, SCORE_SCALE]
-ALPHA          = 0.85     # paper-weight: final = α*paper + (1-α)*cfp
+SIM_CEILING    = 0.7     # cosine sim mapped to SCORE_SCALE; see _rescale
+ALPHA          = 0.85    # paper-weight: final = α*paper + (1-α)*cfp
+
+
+class RationaleError(RuntimeError):
+    """Rationale generation failed or returned nothing (strict mode only)."""
 
 
 # LLM setup
 
-def _build_local_llm() -> ChatOllama:
-    return ChatOllama(
-        model="llama3.1:8b",
-        base_url="http://localhost:11434",
+def _build_llm() -> ChatGroq:
+    return ChatGroq(
+        model=GROQ_MODEL,
         temperature=0,
-        num_ctx=4096,
+        max_tokens=1024,
     )
 
 
-# acoring
+# scoring
 
 def _rescale(sim: float) -> float:
-    """Linear rescale from cosine sim space [0, 0.7] to score space [0, SCORE_SCALE]."""
-    return max(0.0, min(SCORE_SCALE, (sim / 0.7) * SCORE_SCALE))
+    """Linear rescale from cosine sim space [0, SIM_CEILING] to [0, SCORE_SCALE]."""
+    return max(0.0, min(SCORE_SCALE, (sim / SIM_CEILING) * SCORE_SCALE))
 
 
 def _paper_k(n: int) -> int:
@@ -85,7 +90,7 @@ def _compute_cfp_score(
     the ranking, and the weight sweep declined monotonically as CFP weight
     rose. Averaging the top few trades a little sensitivity for stability.
 
-    Note this does NOT fix the topic-count bias — venues list 10 to 22 topics
+    Note this does NOT fix the topic-count bias: Venues list 10 to 22 topics
     and a top-k statistic over so few still favours the longer lists (spread
     ~0.04 on synthetic data, for max and mean-of-3 alike). Too small a range
     for a quantile to help. Documented, not solved.
@@ -136,21 +141,35 @@ Return only the rationale text, no preamble.
 
 
 def _generate_rationale(
-    llm: ChatOllama,
+    llm: ChatGroq,
     user_description: str,
     conf_name: str,
     paper_score: float,
     cfp_score: float,
     final_score: float,
     top_titles: list[str],
-    top_cfp_matches: list[tuple[str, float]],
+    top_cfp_matches: list[tuple[str, float | None]],
+    *,
+    strict: bool = False,
 ) -> str:
+    """Generate the display rationale for one conference.
+
+    A similarity of None means it is not known for that topic, and the topic is
+    listed without a number rather than with a made-up one.
+
+    strict=True raises RationaleError instead of returning a placeholder.
+    """
     if not top_titles and not top_cfp_matches:
+        if strict:
+            raise RationaleError(f"no evidence available for {conf_name}")
         return f"No evidence available for {conf_name}."
 
     titles_str = "\n".join(f"- {t}" for t in top_titles) or "(none)"
     cfp_str = (
-        "\n".join(f"- {topic} (sim {sim:.2f})" for topic, sim in top_cfp_matches)
+        "\n".join(
+            f"- {topic}" + (f" (sim {sim:.2f})" if sim is not None else "")
+            for topic, sim in top_cfp_matches
+        )
         or "(no CFP topics available)"
     )
 
@@ -168,10 +187,20 @@ def _generate_rationale(
 
     try:
         response = llm.invoke([HumanMessage(content=prompt)])
-        return response.content.strip()
+        text = (response.content or "").strip()
     except Exception as e:
+        if strict:
+            raise RationaleError(f"{conf_name}: {e}") from e
         print(f"  [relevance_agent] rationale error for {conf_name}: {e}")
         return f"(Rationale unavailable: {e})"
+
+    if not text:
+        if strict:
+            raise RationaleError(f"{conf_name}: generation returned no content")
+        print(f"  [relevance_agent] empty rationale for {conf_name}")
+        return "(Rationale unavailable: generation returned no content.)"
+
+    return text
 
 
 # per-conference scoring
@@ -182,7 +211,7 @@ def _score_one_conference(
     cfp_topics: list[str],
     user_embedding: np.ndarray,
     user_description: str,
-    llm: ChatOllama | None,
+    llm: ChatGroq | None,
     *,
     alpha: float,
     rationale: bool = True,
@@ -216,11 +245,6 @@ def _score_one_conference(
         final_score = alpha * topk_score + (1 - alpha) * cfp_score
         cfp_available = True
 
-    # rationale — display text only; it never feeds into final_score.
-    # The eval skips it: a 5-point weight sweep is 200 calls whose output
-    # nothing reads. "" is deliberate — it is falsy, so test_pipeline's
-    # `bool(top.get("rationale"))` check still catches a skip that leaks
-    # into the production path.
     rationale_text = _generate_rationale(
         llm, user_description, conf_name,
         topk_score, cfp_score, final_score,
@@ -247,6 +271,40 @@ def _score_one_conference(
     }
 
 
+def rationale_for(
+    rec: RecommendationEntry,
+    user_description: str,
+    cfp_topics: list[str] | None = None,
+) -> str:
+    """Generate the rationale for one already-scored conference.
+
+    Companion to relevance_node(generate_rationales=False): score everything
+    cheaply, then call this for the one venue a user asks about.
+
+    Pass cfp_topics when available so per-topic similarities are real; rec
+    carries only the aggregate cfp_score. Raises RationaleError on failure.
+    """
+    top_cfp_matches: list[tuple[str, float | None]]
+    if cfp_topics:
+        user_embedding = compute_embeddings([user_description])[0]
+        _, matches = _compute_cfp_score(user_embedding, cfp_topics)
+        top_cfp_matches = [(t, s) for t, s in matches[:TOP_CFP_TOPICS]]
+    else:
+        top_cfp_matches = [(t, None) for t in rec.get("top_cfp_topics", [])]
+
+    return _generate_rationale(
+        _build_llm(),
+        user_description,
+        rec["conference"],
+        rec["paper_score"],
+        rec["cfp_score"],
+        rec["score"],
+        rec.get("top_titles", []),
+        top_cfp_matches,
+        strict=True,
+    )
+
+
 # LangGraph node
 
 def relevance_node(state: PipelineState) -> dict:
@@ -254,24 +312,31 @@ def relevance_node(state: PipelineState) -> dict:
     LangGraph node: rank conferences by combined paper + CFP relevance to
     the user's research description.
 
-    final_score = α * paper_topk_score + (1 - α) * cfp_max_score    (default α = 0.5)
+    final_score = ALPHA * paper_topk_score + (1 - ALPHA) * cfp_score
+
+    where paper_topk_score is the mean of the venue's top-decile paper
+    similarities and cfp_score is the mean of its top-CFP_K topic
+    similarities. Venues with no CFP fall back to paper-only.
 
     Reads from state:
         user_research_description
         conferences_in_scope
         papers_df_path
         cfp_data
+        generate_rationales: optional, defaults True. When False no LLM is
+        built and every entry comes back with rationale="".
 
     Writes to state:
-        recommendations — list sorted by final_score desc, each with:
+        recommendations: list sorted by final_score desc, each with
             conference, score, paper_score, cfp_score, mean_score,
             cfp_available, rationale, top_titles, top_cfp_topics
-        errors          — any per-conference errors
+        errors : any per-conference errors
     """
     user_description: str = state["user_research_description"]
     conferences: list[str] = state["conferences_in_scope"]
     parquet_path: str = state["papers_df_path"]
     cfp_data: dict = state.get("cfp_data", {})
+    want_rationales: bool = state.get("generate_rationales", True)
 
     print(f"\n[relevance_agent] ranking {len(conferences)} conferences (α={ALPHA})")
     print(f"  research: {user_description[:80]}…")
@@ -289,7 +354,7 @@ def relevance_node(state: PipelineState) -> dict:
 
     user_embedding = compute_embeddings([user_description])[0]
 
-    llm = _build_local_llm()
+    llm = _build_llm() if want_rationales else None
     recommendations: list[RecommendationEntry] = []
     errors: list[str] = []
 
@@ -301,7 +366,7 @@ def relevance_node(state: PipelineState) -> dict:
             rec = _score_one_conference(
                 conf_name, conf_df, cfp_topics,
                 user_embedding, user_description, llm,
-                alpha=ALPHA
+                alpha=ALPHA, rationale=want_rationales,
             )
             recommendations.append(rec)
         except Exception as e:

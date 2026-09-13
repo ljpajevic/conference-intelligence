@@ -2,7 +2,7 @@
 import hashlib
 import json
 import platform
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 REPORTS_DIR = Path(__file__).parent / "reports"
@@ -38,6 +38,9 @@ def write_report(rag_summary: dict | None,
                  config_extra: dict | None = None) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
     out = REPORTS_DIR / f"eval_report_{date.today().isoformat()}.md"
+    if out.exists():
+        out = REPORTS_DIR / (f"eval_report_{date.today().isoformat()}"
+                             f"_{datetime.now().strftime('%H%M%S')}.md")
     fp = config_fingerprint(config_extra)
 
     parts = [f"# Evaluation Report — {date.today().isoformat()}",
@@ -46,13 +49,17 @@ def write_report(rag_summary: dict | None,
     if rag_summary:
         parts.append("## RAG pipeline\n")
         parts.append(_table([{k: v for k, v in rag_summary.items() if k != "cases"}]))
-        parts.append(f"\nCases evaluated: {rag_summary['n_cases']}. "
-                     "`false_answer_rate` = answers produced for questions the corpus "
-                     "cannot answer (lower is better); `answer_coverage` = answerable "
-                     "questions actually answered (higher is better). `hit_rate` and "
-                     "`mrr` read 0 by construction: the RAG golden set carries no "
-                     "`relevant_chunk_ids`, so there is nothing for the retrieval-"
-                     "ranking metrics to score.\n")
+        note = (f"\nCases evaluated: {rag_summary['n_cases']}. "
+                "`false_answer_rate` = answers produced for questions the corpus "
+                "cannot answer (lower is better); `answer_coverage` = answerable "
+                "questions actually answered (higher is better).")
+        scored_retrieval = any(c.get("hit") is not None
+                               for c in rag_summary.get("cases", []))
+        if not scored_retrieval:
+            note += (" `hit_rate` and `mrr` read 0 by construction: no case in the "
+                     "RAG golden set carries `relevant_chunk_ids`, so there is "
+                     "nothing for the retrieval-ranking metrics to score.")
+        parts.append(note + "\n")
 
     if deepeval_summary:
         parts.append("## DeepEval metrics\n")

@@ -47,7 +47,8 @@ def run_deepeval(top_k: int = 5, threshold: float | None = None) -> dict:
     recall_metric           = ContextualRecallMetric(threshold=0.5, verbose_mode=False)
 
     for case in golden:
-        chunks  = adapters.retrieve(case["question"], top_k=top_k)
+        chunks  = adapters.apply_threshold(
+            adapters.retrieve(case["question"], top_k=top_k), threshold)
         answer  = adapters.generate_answer(case["question"], chunks, threshold=threshold)
         answered = answer is not None
 

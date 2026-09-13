@@ -94,7 +94,8 @@ def evaluate_rag(top_k: int = 5, threshold: float | None = None,
     results: list[RagCaseResult] = []
 
     for case in golden:
-        chunks = adapters.retrieve(case["question"], top_k=top_k)
+        retrieved = adapters.retrieve(case["question"], top_k=top_k)
+        chunks = adapters.apply_threshold(retrieved, threshold)
         answer = adapters.generate_answer(case["question"], chunks, threshold=threshold)
         answered = answer is not None
 

@@ -10,6 +10,9 @@ from agents.cfp_agent import cfp_scraper_node
 from agents.trend_agent import trend_analysis_node
 from agents.relevance_agent import relevance_node
 
+# years the corpus is built over
+DEFAULT_YEARS = [2022, 2023, 2024, 2025, 2026]
+
 
 def registry_node(state: PipelineState) -> PipelineState:
     """
@@ -90,7 +93,8 @@ def run_data_pipeline(
     initial_state: PipelineState = {
         "user_research_description": "",
         "conferences_in_scope": conferences or [],
-        "years_in_scope": years or [2023, 2024, 2025],
+        "years_in_scope": years or DEFAULT_YEARS,
+        "generate_rationales": False,   # data pipeline does not rank
         "conference_metadata": {},
         "papers_df_path": "",
         "cfp_data": {},
@@ -103,7 +107,7 @@ def run_data_pipeline(
     print("CONFERENCE INTELLIGENCE — DATA PIPELINE")
     print("=" * 50)
     print(f"Conferences: {conferences or 'all'}")
-    print(f"Years: {years or [2023, 2024, 2025]}")
+    print(f"Years: {years or DEFAULT_YEARS}")
 
     result = graph.invoke(initial_state)
 
@@ -118,16 +122,21 @@ def run_recommendations(
     conferences: list[str] = None,
     papers_df_path: str = "",
     cfp_data: dict = None,
+    generate_rationales: bool = True,
 ) -> dict:
     """
     Run the fast relevance scoring pipeline.
     Requires papers_df_path and cfp_data from a prior data pipeline run.
+
+    generate_rationales=False skips the per-conference LLM calls and returns
+    scores only; use agents.relevance_agent.rationale_for to fill one in later.
     """
     graph = build_query_graph()
     initial_state: PipelineState = {
         "user_research_description": user_research_description,
         "conferences_in_scope": conferences or [],
         "years_in_scope": [],
+        "generate_rationales": generate_rationales,
         "conference_metadata": {},
         "papers_df_path": papers_df_path,
         "cfp_data": cfp_data or {},

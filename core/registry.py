@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from config import DB_PATH
@@ -149,23 +149,35 @@ SEED_DATA = [
 
 # database connection
 
+_schema_ready = False
+
+
 def get_connection() -> sqlite3.Connection:
+    """Open the registry, creating and seeding it on first use.
+
+    db/ is gitignored and the registry is rebuilt from SEED_DATA, so a fresh clone or container has no database.
+    Seeding is idempotent and costs ~6ms, so it is cheaper to guarantee than to document.
+    """
+    global _schema_ready
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    if not _schema_ready:
+        conn.execute(DDL)
+        conn.commit()
+        _seed(conn)
+        _schema_ready = True
     return conn
 
 
 def init_db() -> None:
-    """Create tables and seed data if not already present."""
-    with get_connection() as conn:
-        conn.execute(DDL)
-        conn.commit()
-        _seed(conn)
+    """Explicitly create tables and seed data, get_connection() does this lazily."""
+    get_connection().close()
     print(f"Registry initialized at {DB_PATH}")
 
 
 def _seed(conn: sqlite3.Connection) -> None:
+    inserted = 0
     for conf in SEED_DATA:
         existing = conn.execute(
             "SELECT id FROM conferences WHERE name = ?",
@@ -174,6 +186,8 @@ def _seed(conn: sqlite3.Connection) -> None:
 
         if existing:
             continue
+
+        inserted += 1
 
         conn.execute("""
             INSERT INTO conferences (
@@ -196,7 +210,8 @@ def _seed(conn: sqlite3.Connection) -> None:
         ))
 
     conn.commit()
-    print(f"Seeded {len(SEED_DATA)} conferences")
+    if inserted:
+        print(f"Seeded {inserted} new conference(s)")
 
 
 # query functions
@@ -272,7 +287,7 @@ def update_discovered_topics(name: str, topics: list[str]) -> dict:
             WHERE name = ?
         """, (
             json.dumps(topics),
-            datetime.utcnow().isoformat(),
+            datetime.now(timezone.utc).isoformat(),
             name.lower(),
         ))
         conn.commit()

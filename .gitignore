@@ -4,14 +4,19 @@
 # Database
 db/
 
-# Data files
-data/
+# Data files — everything except the tracked CFP snapshot
+data/*
+!data/cfp_export.json
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
 
 # Ollama cache
 *.bin

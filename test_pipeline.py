@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from main import run_pipeline
+from main import run_data_pipeline, run_recommendations
 
 # config
 
@@ -197,11 +197,19 @@ def main():
     print("=" * 52)
 
     print("\nRunning pipeline…")
-    result = run_pipeline(
-        user_research_description=TEST_DESCRIPTION,
+
+    data_result = run_data_pipeline(
         conferences=TEST_CONFERENCES,
         years=TEST_YEARS,
     )
+    rec_result = run_recommendations(
+        user_research_description=TEST_DESCRIPTION,
+        conferences=TEST_CONFERENCES,
+        papers_df_path=data_result.get("papers_df_path", ""),
+        cfp_data=data_result.get("cfp_data", {}),
+    )
+    result = {**data_result, **rec_result}
+    result["errors"] = data_result.get("errors", []) + rec_result.get("errors", [])
 
     # run checks either per agent or run the entire pipeline
     results = {}

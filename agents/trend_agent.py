@@ -3,7 +3,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import json
-import re
 
 import numpy as np
 import pandas as pd
@@ -209,7 +208,7 @@ def _build_trajectory_titles(df: pd.DataFrame, labelled_clusters: list[dict]) ->
 
 
 def _llm_trajectory(
-    llm: ChatGroq,
+    llm: ChatOllama,
     conf: str,
     counts: dict,
     titles: dict,

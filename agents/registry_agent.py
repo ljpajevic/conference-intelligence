@@ -10,7 +10,6 @@ from core.registry import (
     list_conferences,
     get_conference,
     add_conference,
-    update_discovered_topics,
     update_cfp_url,
 )
 

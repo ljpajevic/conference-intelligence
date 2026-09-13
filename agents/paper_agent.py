@@ -3,7 +3,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio
-import json
 import random
 import time
 
@@ -17,7 +16,6 @@ from pipeline.paper_pipeline import (
     enrich_papers_async,
     create_chunks,
     save_dataframe,
-    normalize_columns,
     print_coverage_report,
     add_embeddings,
     RAW_DIR,

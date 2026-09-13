@@ -44,7 +44,7 @@ from tqdm import tqdm
 from tqdm.asyncio import tqdm as async_tqdm
 
 from core.tools import compute_embeddings, build_paper_text
-from core.registry import list_conferences
+from config import DATA_DIR
 
 # ============================================================
 # CONFIG
@@ -52,7 +52,6 @@ from core.registry import list_conferences
 
 N_YEARS = 3
 
-DATA_DIR = Path("data")
 RAW_DIR = DATA_DIR / "raw"
 ENRICHED_DIR = DATA_DIR / "enriched"
 CHUNKS_DIR = DATA_DIR / "chunks"
@@ -549,10 +548,6 @@ def main() -> None:
     print("--------------------\n")
 
     enriched_df = asyncio.run(enrich_papers_async(raw_df))
-
-    save_dataframe(enriched_df, ENRICHED_DIR / "networking_papers_enriched.parquet")
-
-    print_coverage_report(enriched_df)
 
     save_dataframe(enriched_df, ENRICHED_DIR / "networking_papers_enriched.parquet")
 

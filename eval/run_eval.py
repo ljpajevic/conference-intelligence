@@ -25,8 +25,13 @@ def main():
     deepeval_summary = None
     if not args.no_deepeval:
         import os
-        if not os.getenv("DEEPEVAL_API_KEY"):
-            print("DeepEval skipped — DEEPEVAL_API_KEY not set (use --no-deepeval to suppress this warning)")
+        # DEEPEVAL_API_KEY is the Confident AI platform key and does NOT make
+        # the metrics runnable: every DeepEval metric here runs an LLM judge,
+        # which defaults to OpenAI and reads OPENAI_API_KEY. Gating on the
+        # platform key let a fully failed run report 0.000 as a measurement.
+        if not os.getenv("OPENAI_API_KEY"):
+            print("DeepEval skipped — OPENAI_API_KEY not set, its metrics need a judge model "
+                  "(use --no-deepeval to suppress this warning)")
         else:
             print("DeepEval metrics ...")
             from . import deepeval_eval

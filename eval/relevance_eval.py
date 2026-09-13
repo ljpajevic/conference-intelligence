@@ -33,10 +33,11 @@ def load_golden(path: Path = GOLDEN_PATH) -> list[dict]:
     return rows
 
 
-def evaluate_ranking(k: int = 3, paper_weight: float | None = None, cfp_weight: float | None = None) -> dict:
+def evaluate_ranking(k: int = 3, paper_weight: float | None = None) -> dict:
     from agents.relevance_agent import ALPHA
     paper_weight = paper_weight if paper_weight is not None else ALPHA
-    cfp_weight = cfp_weight if cfp_weight is not None else (1 - ALPHA)
+    # reported only; the scorer derives the CFP share from alpha
+    cfp_weight = round(1 - paper_weight, 4)
     golden = load_golden()
     ndcgs, precs, per_case = [], [], []
     paper_only_all: set[str] = set()
@@ -44,8 +45,7 @@ def evaluate_ranking(k: int = 3, paper_weight: float | None = None, cfp_weight: 
 
     for case in golden:
         ranked = adapters.rank_conferences(case["research_description"],
-                                           paper_weight=paper_weight,
-                                           cfp_weight=cfp_weight)
+                                           paper_weight=paper_weight)
         grades = {c.lower(): g for c, g in case["grades"].items()}
         ranked_l = [r.conference.lower() for r in ranked]
         paper_only = [r.conference.lower() for r in ranked if not r.cfp_available]
@@ -82,7 +82,7 @@ def weight_sweep(steps: int = 5, k: int = 3) -> list[dict]:
     rows = []
     for i in range(steps):
         pw = round(i / (steps - 1), 2)
-        r = evaluate_ranking(paper_weight=pw, cfp_weight=round(1 - pw, 2), k=k)
+        r = evaluate_ranking(paper_weight=pw, k=k)
         rows.append({"paper_weight": pw, "cfp_weight": round(1 - pw, 2),
                      f"ndcg@{k}": r[f"ndcg@{k}"],
                      f"precision@{k}": r[f"precision@{k}"]})

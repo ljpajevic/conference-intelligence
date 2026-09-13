@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rag.retriever import retrieve, chunks_parquet_exists, index_exists
+from rag.retriever import retrieve, chunks_parquet_exists
 from rag.generator import generate
 
 

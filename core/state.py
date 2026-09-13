@@ -38,7 +38,7 @@ class RecommendationEntry(TypedDict):
     conference: str
     score: float             # combined score, primary ranking key
     paper_score: float       # topk paper similarity, 0-10
-    cfp_score: float         # max CFP topic similarity, 0-10
+    cfp_score: float         # mean of the top-CFP_K topic similarities, 0-10
     mean_score: float        # mean paper similarity, 0-10 (debugging signal)
     cfp_available: bool      # False if CFP scrape failed → score is paper-only
     rationale: str
@@ -57,6 +57,7 @@ class PipelineState(TypedDict):
     user_research_description: str        # user's research summary
     conferences_in_scope: list[str]       # conference names e.g. ["sigcomm", "imc"]
     years_in_scope: list[int]             # historical data years e.g. [2023, 2024, 2025]
+    generate_rationales: bool             # False = score only, rationales on demand
 
     # ── Registry agent output ────────────────────────────────
     conference_metadata: dict             # name as a full conference record from DB
