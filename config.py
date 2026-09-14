@@ -14,6 +14,11 @@ OLLAMA_MODEL = "llama3.1:8b"
 OLLAMA_BASE_URL = "http://localhost:11434"
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Contact advertised in the scraper's User-Agent. Empty by default: whoever
+# runs the scraper is the one making the requests, so hardcoding the author's
+# address would send complaints about a clone's traffic to the wrong person.
+SCRAPER_CONTACT = os.getenv("SCRAPER_CONTACT", "")
 # Previously llama-3.3-70b-versatile — deprecated by Groq on June 17, 2026
 GROQ_MODEL = "openai/gpt-oss-120b"
 

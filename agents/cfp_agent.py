@@ -8,6 +8,9 @@ import time
 import random
 from datetime import date
 
+from urllib.parse import urlparse
+from urllib.robotparser import RobotFileParser
+
 import requests
 from bs4 import BeautifulSoup
 from langchain_groq import ChatGroq
@@ -17,7 +20,7 @@ from core.state import PipelineState
 from core.registry import get_conference, update_cfp_url
 from core.cache import hash_content, cache_get, cache_set
 
-from config import GROQ_MODEL
+from config import GROQ_MODEL, SCRAPER_CONTACT
 
 from json_repair import repair_json
 
@@ -41,33 +44,65 @@ TOPIC_KEYWORDS = [
     "research areas",
 ]
 
+_UA = "CFPScraper/1.0"
+if SCRAPER_CONTACT:
+    _UA += f" (+{SCRAPER_CONTACT})"
+
 HEADERS = {
-    "User-Agent": "CFPScraper/1.0 (research@example.com)",
+    "User-Agent": _UA,
     "Accept-Encoding": "gzip, deflate",
 }
 
+# robots.txt, per host, fetched once and cached for the process.
+DEFAULT_CRAWL_DELAY = 2.0
+_robots: dict[str, RobotFileParser | None] = {}
+_last_request: dict[str, float] = {}
 
-# HTTP helper
 
-def _safe_get_persistent(url: str, max_attempts: int = 3) -> requests.Response | None:
-    session = requests.Session()
-
-    for attempt in range(max_attempts):
+def _robots_for(url: str) -> RobotFileParser | None:
+    host = urlparse(url).netloc
+    if host not in _robots:
+        rp = RobotFileParser()
+        rp.set_url(f"{urlparse(url).scheme}://{host}/robots.txt")
         try:
-            r = session.get(url, headers=HEADERS, timeout=20)
-            if r.status_code == 200:
-                return r
-            if r.status_code == 429:
-                sleep_time = (2 ** attempt) + random.uniform(0, 1)
-                print(f"  [cfp_agent] 429 on {url} — sleeping {sleep_time:.1f}s")
-                time.sleep(sleep_time)
-                continue
-            r.raise_for_status()
+            rp.read()
         except Exception as e:
-            sleep_time = (2 ** attempt) + random.uniform(0, 1)
-            print(f"  [cfp_agent] fetch error ({url}): {e} — retrying in {sleep_time:.1f}s")
-            time.sleep(sleep_time)
-    return None
+            print(f"  [cfp_agent] no robots.txt for {host} ({e}) — assuming allowed")
+            rp = None
+        _robots[host] = rp
+    return _robots[host]
+
+
+def _allowed(url: str) -> bool:
+    rp = _robots_for(url)
+    return True if rp is None else rp.can_fetch(_UA, url)
+
+
+def _wait_for_host(url: str) -> None:
+    """Honour the host's Crawl-Delay, measured per host rather than per venue.
+
+    conferences.sigcomm.org serves three venues and sigmobile.org two, so a
+    per-venue sleep understates how often a single host is hit. Both ask for
+    Crawl-Delay: 20.
+    """
+    host = urlparse(url).netloc
+    rp = _robots_for(url)
+    delay = DEFAULT_CRAWL_DELAY
+    if rp is not None:
+        try:
+            declared = rp.crawl_delay(_UA)
+            if declared:
+                delay = float(declared)
+        except Exception:
+            pass
+
+    elapsed = time.monotonic() - _last_request.get(host, 0.0)
+    if elapsed < delay:
+        wait = delay - elapsed
+        print(f"  [cfp_agent] crawl-delay {host}: waiting {wait:.1f}s")
+        time.sleep(wait)
+    _last_request[host] = time.monotonic()
+
 
 
 def _safe_get(url: str, max_attempts: int = 3) -> requests.Response | None:
@@ -75,10 +110,14 @@ def _safe_get(url: str, max_attempts: int = 3) -> requests.Response | None:
     GET with retries. Skips retry on 4xx errors (except 429), since those
     are not transient — retrying a 404 just wastes ~7s.
     """
+    if not _allowed(url):
+        print(f"  [cfp_agent] robots.txt disallows {url} — skipping")
+        return None
     session = requests.Session()
 
     for attempt in range(max_attempts):
         try:
+            _wait_for_host(url)
             r = session.get(url, headers=HEADERS, timeout=20)
 
             if r.status_code == 200:
