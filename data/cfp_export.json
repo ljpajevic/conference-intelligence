@@ -1,6 +1,6 @@
 {
-  "generated": "2026-09-13T21:01:58+00:00",
-  "pipeline_run": "2026-09-13T20:51:28+00:00",
+  "generated": "2026-09-14T07:20:39+00:00",
+  "pipeline_run": "2026-09-14T07:14:02+00:00",
   "venues": {
     "conext": {
       "deadlines": [
@@ -79,12 +79,32 @@
           "label": "Notification to authors"
         },
         {
+          "cycle": 1,
+          "date": "2026-08-31",
+          "label": "Artifact submission deadline"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-09-08",
+          "label": "Artifact “kick the tires” period ends"
+        },
+        {
           "cycle": 2,
           "date": "2026-09-17",
           "label": "Paper titles and abstracts due"
         },
         {
           "cycle": 1,
+          "date": "2026-09-21",
+          "label": "Artifact “Functional” and “Reproduced” decisions"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-09-23",
+          "label": "Permanent archival for “Available”"
+        },
+        {
+          "cycle": 2,
           "date": "2026-09-24",
           "label": "Full Paper Submission"
         },
@@ -107,6 +127,26 @@
           "cycle": 2,
           "date": "2027-01-29",
           "label": "Notification to authors"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-02-08",
+          "label": "Artifact submission deadline"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-02-16",
+          "label": "Artifact “kick the tires” period ends"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-03-01",
+          "label": "Artifact “Functional” and “Reproduced” decisions"
+        },
+        {
+          "cycle": 2,
+          "date": "2027-03-03",
+          "label": "Permanent archival for “Available”"
         },
         {
           "cycle": 2,
@@ -139,7 +179,37 @@
         {
           "cycle": 1,
           "date": "2026-01-21",
-          "label": "Full Paper Submission"
+          "label": "Research Paper Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-01-23",
+          "label": "Workshop Proposal Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-03-17",
+          "label": "Industry Event Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-03-27",
+          "label": "Tutorial Proposal Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-20",
+          "label": "Doctoral Consortium Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-23",
+          "label": "Workshop Paper Submission"
+        },
+        {
+          "cycle": 1,
+          "date": "2026-04-24",
+          "label": "Poster Submission"
         },
         {
           "cycle": 1,
@@ -167,8 +237,11 @@
         "Distributed OS and Middleware",
         "Internet of Things (IoT)",
         "Cyber-Physical Systems (CPS)",
-        "Security, Privacy and Trust",
-        "Blockchains/Databases",
+        "Security",
+        "Privacy",
+        "Trust",
+        "Blockchains",
+        "Databases",
         "AI/ML Driven Distributed Systems",
         "Deployed/Emergent Applications & Infrastructures",
         "Digital Twins Computing Systems",
@@ -180,43 +253,13 @@
       "deadlines": [
         {
           "cycle": 1,
-          "date": "2025-11-13",
-          "label": "Paper registration (with abstract)"
-        },
-        {
-          "cycle": 1,
           "date": "2025-11-20",
           "label": "Full Paper Submission"
         },
         {
-          "cycle": 2,
+          "cycle": 0,
           "date": "2026-01-29",
           "label": "Expression of Interest (Replicability Track)"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-02-03",
-          "label": "Early reject notification"
-        },
-        {
-          "cycle": 2,
-          "date": "2026-03-02",
-          "label": "Notification for Replicability Track Expression of Interest"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-03-17",
-          "label": "Notification"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-04-14",
-          "label": "Shepherd approval and final camera ready submission"
-        },
-        {
-          "cycle": 2,
-          "date": "2026-04-22",
-          "label": "Paper registration (with abstract, including invited papers to Replicability Track)"
         },
         {
           "cycle": 2,
@@ -227,51 +270,26 @@
           "cycle": 2,
           "date": "2026-06-04",
           "label": "One-shot revision resubmission deadline"
-        },
-        {
-          "cycle": 2,
-          "date": "2026-06-25",
-          "label": "Early reject notification"
-        },
-        {
-          "cycle": 2,
-          "date": "2026-08-04",
-          "label": "Notification"
-        },
-        {
-          "cycle": 2,
-          "date": "2026-09-01",
-          "label": "Shepherd approval and final camera ready submission"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-09-29",
-          "label": "Official publication date"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-10-12",
-          "label": "Conference start"
         }
       ],
       "topics": [
-        "network structure and performance measurement",
-        "application and end-user behavior measurement",
+        "collection and analysis of data that yield new insights about network structure and network performance",
+        "collection and analysis of data that yield new insights about application and end-user behavior",
         "measurement-based modeling",
-        "monitoring and visualization tools",
-        "systems and algorithms based on measurements",
-        "theoretical analysis and modeling of networked systems",
-        "novel data collection, analysis, and storage methods",
-        "reappraisal of previous empirical measurements",
-        "future challenges and directions",
+        "methods and tools to monitor and visualize network-based phenomena",
+        "systems and algorithms that build on measurement-based findings",
+        "theoretical analysis and modeling of networked-systems and measurement techniques",
+        "novel methods for data collection, analysis, and storage",
+        "reappraisal of previous empirical network measurements and measurement-based conclusions",
+        "descriptions of challenges and future directions the measurement community should pursue",
         "Internet transit networks",
-        "edge networks (home, broadband, cellular)",
-        "data center and cloud networks",
-        "peer-to-peer and content distribution networks",
+        "edge networks, including home networks, broadband access networks and cellular networks",
+        "data center networks and cloud computing infrastructure",
+        "peer-to-peer, overlay, and content distribution networks",
         "software-defined networks",
         "online social networks",
-        "online services and platforms",
-        "experimental and prototype networks"
+        "online services, platforms, and content providers",
+        "experimental networks, prototype networks, and future internetworks"
       ],
       "url": "https://conferences.sigcomm.org/imc/2026/cfp"
     },
@@ -313,7 +331,36 @@
         "Internet architectures",
         "Internet of Things",
         "Large-scale MIMO-based networking",
-        "Localization and location-based services"
+        "Localization and location-based services",
+        "Medium access control",
+        "Mobile sensing and applications",
+        "Mobility management and models",
+        "Multimedia networking",
+        "Network economics and pricing",
+        "Network management",
+        "Network measurement and analysis",
+        "Network security and privacy",
+        "Network support for VR/AR",
+        "Network virtualization",
+        "Networked autonomous aerial/terrestrial/underwater systems",
+        "Non-terrestrial networks",
+        "Online social networks",
+        "Optical networks",
+        "Overlay and peer-to-peer networks",
+        "Quality-of-service and resource management",
+        "Quantum networking",
+        "Radio Frequency Identification (RFID) and Near-Field Communication (NFC)",
+        "Router and switch design",
+        "Routing and multicast",
+        "Scaling laws and fundamental limits",
+        "Software-defined networking (SDN)",
+        "Tactile Internet",
+        "Testbeds, experimentations, and networked experimental platforms",
+        "Ultra-Reliable Low-Latency Communications (URLLC)",
+        "Vehicular networks",
+        "Visible light communications (VLC)",
+        "Web applications and content distribution",
+        "Wireless local/personal area networks"
       ],
       "url": "https://infocom2025.ieee-infocom.org/authors/call-papers-main-conference"
     },
@@ -323,16 +370,6 @@
           "cycle": 1,
           "date": "2026-09-02",
           "label": "Full Paper Submission"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-11-06",
-          "label": "Submission Deadline"
-        },
-        {
-          "cycle": 1,
-          "date": "2026-11-19",
-          "label": "Acceptance Notification"
         }
       ],
       "topics": [
@@ -362,7 +399,7 @@
         "Virtual, augmented, and mixed reality systems",
         "Context and location sensing systems",
         "Application-focused mobile and wireless systems (i.e., systems for health, accessibility, sustainability, climate, buildings, agriculture, etc.)",
-        "Mobile and wireless systems in challenging environments (e.g., underwater, space, in-body)",
+        "Mobile and wireless systems in challenging environments (e.g, underwater, space, in-body)",
         "Novel datasets for mobile and wireless systems",
         "Wireless communication and sensing systems (including 5G/6G, millimeter-wave & THz, backscatter, LPWAN)",
         "Experience with mobile applications, networks, and systems",
@@ -419,26 +456,11 @@
         }
       ],
       "topics": [
-        "computer networks",
-        "wired and wireless technologies",
-        "network architecture",
-        "packet- and circuit-switched hardware and software",
-        "virtualization",
-        "mobility",
-        "resource management",
-        "performance",
-        "energy consumption and environmental impact",
-        "topology",
-        "robustness",
-        "security",
-        "diagnosis",
-        "verification",
-        "privacy",
-        "economics",
-        "evolution",
-        "interactions with applications",
-        "network life cycle",
-        "theory, analysis, experimentation, and AI/machine learning"
+        "All types of computer networks, including mobile, wide-area, data center, embedded, home, and enterprise networks.",
+        "All types of wired and wireless technologies, including optics, radio, acoustic, and visible light-based communication.",
+        "All aspects of networks and networked systems, such as network architecture, packet-switched and circuit-switched hardware and software, virtualization, mobility, resource management, performance, energy consumption and environmental impact, topology, robustness, security, diagnosis, verification, privacy, economics, evolution, and interactions with applications.",
+        "All parts of the network life cycle, including planning, designing, building, operating, troubleshooting, migrations, and end-of-life.",
+        "All approaches and techniques applied to networking, including theory, analysis, experimentation, and AI/machine learning."
       ],
       "url": "https://conferences.sigcomm.org/sigcomm/2027/cfp/"
     }

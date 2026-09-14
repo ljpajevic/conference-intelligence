@@ -24,7 +24,7 @@ from json_repair import repair_json
 HEAD_CHARS = 3000
 TAIL_CHARS = 3000
 KEYWORD_CTX = 400
-TOPIC_KEYWORD_CTX = 3500
+TOPIC_KEYWORD_CTX = 8000
 DEADLINE_KEYWORDS = [
     "deadline", "due date", "submission deadline",
     "paper deadline", "abstract deadline", "full paper due",
@@ -105,12 +105,10 @@ def _safe_get(url: str, max_attempts: int = 3) -> requests.Response | None:
     return None
 
 # text extraction
+MAX_EXTRACT_CHARS = 16000   # ~4k tokens, fits Groq free tier with headroom
 
 def _extract_text(html: str) -> str:
-    """
-    Head + keyword-context (deadlines + topics) + tail.
-    Deadlines need short context; topic lists need much longer context.
-    """
+    """Head + merged keyword context (topics first, then deadlines) + tail."""
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
@@ -119,35 +117,41 @@ def _extract_text(html: str) -> str:
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"[ \t]+", " ", text)
     text = text.strip()
-
-    parts = [text[:HEAD_CHARS]]
     lower = text.lower()
-    seen_ranges: list[tuple[int, int]] = []
 
-    def _add_keyword_context(keywords: list[str], ctx: int, label: str):
+    def _merged_spans(keywords: list[str], ctx: int) -> list[tuple[int, int]]:
+        spans = []
         for kw in keywords:
             idx = 0
-            while True:
-                pos = lower.find(kw, idx)
-                if pos == -1:
-                    break
-                start = max(0, pos - 100)
-                end = min(len(text), pos + ctx)
-                # Skip if already covered by a previously added range
-                if not any(s <= start and end <= e for s, e in seen_ranges):
-                    parts.append(f"[...'{kw}' ({label}) context...]\n" + text[start:end])
-                    seen_ranges.append((start, end))
+            while (pos := lower.find(kw, idx)) != -1:
+                spans.append((max(0, pos - 100), min(len(text), pos + ctx)))
                 idx = pos + 1
+        merged: list[tuple[int, int]] = []
+        for start, end in sorted(spans):
+            if merged and start <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+        return merged
 
-    # topics first, take priority if ranges overlap
-    _add_keyword_context(TOPIC_KEYWORDS, TOPIC_KEYWORD_CTX, "topic")
-    _add_keyword_context(DEADLINE_KEYWORDS, KEYWORD_CTX, "deadline")
+    parts = [text[:HEAD_CHARS]]
+    budget = MAX_EXTRACT_CHARS - HEAD_CHARS - TAIL_CHARS
+
+    # topics claim the budget first: a truncated topic list silently degrades
+    # the CFP score, while a missed deadline is visible in the output
+    for keywords, ctx in ((TOPIC_KEYWORDS, TOPIC_KEYWORD_CTX),
+                          (DEADLINE_KEYWORDS, KEYWORD_CTX)):
+        for start, end in _merged_spans(keywords, ctx):
+            if budget <= 0:
+                break
+            chunk = text[start:end][:budget]
+            parts.append(f"[...context {start}-{start + len(chunk)}...]\n" + chunk)
+            budget -= len(chunk)
 
     if len(text) > HEAD_CHARS:
         parts.append("[...page end...]\n" + text[-TAIL_CHARS:])
 
     return "\n\n".join(parts)
-
 
 # LLM setup
 
@@ -189,7 +193,8 @@ _CFP_PROMPT = """\
 You are a structured data extractor reading the Call for Papers (CFP) page of {conf_name}.
 
 Extract:
-1. "topics" — up to 20 short topic phrases listed in the CFP. Return [] if not found.
+1. "topics" — every short topic phrase listed in the CFP, in the order given.
+   CFP topic lists commonly run to 40 or more; do not truncate. Return [] if not found.
 2. "deadlines" — any submission deadlines on this page (same format as homepage extraction).
    Return [] if none found here.
 3. "cfp_url_hint" — if this page clearly links to a more specific or complete CFP page,
