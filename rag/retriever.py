@@ -73,14 +73,20 @@ def retrieve(
     top_k: int = 8,
     conferences: list[str] | None = None,
     years: list[int] | None = None,
+    min_similarity: float | None = None,
 ) -> list[dict]:
     """
     Embed query and retrieve top-k chunks from Chroma.
+
+    min_similarity overrides MIN_SIMILARITY for this call; the eval sweeps it,
+    production leaves it None. Without it the sweep was inert at or below
+    MIN_SIMILARITY, because this filter ran before the eval applied its own.
 
     Returns:
         List of dicts with keys: chunk_id, text, paper_title, conference,
         year, doi, similarity. Empty list if no results exceed MIN_SIMILARITY.
     """
+    threshold = MIN_SIMILARITY if min_similarity is None else min_similarity
     collection = _get_collection()
 
     query_embedding = compute_embeddings([query])[0].tolist()
@@ -111,7 +117,7 @@ def retrieve(
         results["distances"][0],
     ):
         similarity = 1.0 - dist
-        if similarity < MIN_SIMILARITY:
+        if similarity < threshold:
             continue
         chunks.append({
             "chunk_id":    chunk_id,

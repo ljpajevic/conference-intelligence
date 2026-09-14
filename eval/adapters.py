@@ -29,10 +29,11 @@ class RankedConference:
 
 # RAG retrieval
 
-def retrieve(question: str, top_k: int = 5) -> list[RetrievalResult]:
+def retrieve(question: str, top_k: int = 5,
+             min_similarity: float | None = None) -> list[RetrievalResult]:
     """Query the ChromaDB collection the Insights tab uses."""
     from rag.retriever import retrieve as _retrieve
-    chunks = _retrieve(question, top_k=top_k)
+    chunks = _retrieve(question, top_k=top_k, min_similarity=min_similarity)
     return [
         RetrievalResult(
             chunk_id=c["chunk_id"],

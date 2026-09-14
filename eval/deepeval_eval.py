@@ -48,7 +48,8 @@ def run_deepeval(top_k: int = 5, threshold: float | None = None) -> dict:
 
     for case in golden:
         chunks  = adapters.apply_threshold(
-            adapters.retrieve(case["question"], top_k=top_k), threshold)
+            adapters.retrieve(case["question"], top_k=top_k,
+                              min_similarity=threshold), threshold)
         answer  = adapters.generate_answer(case["question"], chunks, threshold=threshold)
         answered = answer is not None
 

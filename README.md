@@ -142,6 +142,8 @@ Two golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 10 expert-grad
 
 `hit_rate` and `mrr` read 0 because every case in the RAG golden set carries an empty `relevant_chunk_ids`. Populating them means labelling which chunks answer each of the 25 questions, open work. `groundedness` is the only metric here that does not reproduce: answers come from a hosted model, and `temperature=0` does not make a served MoE bit-reproducible. Four runs on identical code and an identical corpus gave 0.782, 0.826, 0.836 and 0.861. Every other metric was identical across all four. A single figure would imply a precision this measurement does not have.
 
+Sweeping the retrieval cutoff from 0.25 to 0.60 leaves answer_coverage at 0.750 and false_answer_rate at 0.200 unchanged; groundedness moves 0.787 / 0.828 / 0.808, which is inside the run-to-run range above. The cutoff is not the binding constraint at top_k=5
+
 **Conference relevance ranking** (paper_weight=0.85, cfp_weight=0.15):
 
 | Metric | Value |
@@ -157,7 +159,7 @@ Two golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 10 expert-grad
 
 ##### Known gaps in the harness
 
-- The threshold sweep is inert at or below 0.6: `retrieve()` already filters at `MIN_SIMILARITY`, so lower sweep points change nothing. Needs `MIN_SIMILARITY` parameterised through the retrieval call.
+- The threshold sweep varies groundedness but not coverage: `top_k=5` binds before the threshold does, so lowering the cutoff to 0.25 admits no additional answers. Sweeping `top_k` alongside the threshold would separate the two.
 - DeepEval is wired in but has never been run.
 
 Reports in [`eval/reports/`](eval/reports/). Each carries a config fingerprint covering the embedding model, `top_k`, `ALPHA` and CFP coverage, so runs made under different scoring do not silently compare. Ranking numbers reproduce exactly across both pinned and older pandas/numpy versions.
