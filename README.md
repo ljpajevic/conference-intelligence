@@ -44,7 +44,7 @@ Ranks conferences against the user's research description using deterministic co
 
 | Layer | Choice |
 |---|---|
-| Agent framework | LangGraph 1.2.1 |
+| Agent framework | LangGraph 1.2.11 |
 | LLM (hosted) | Groq `openai/gpt-oss-120b` (CFP extraction, cluster labels, RAG answers, rationales) |
 | LLM (local) | Ollama `llama3.1:8b` (registry CLI, trend trajectory) |
 | Embeddings | `all-MiniLM-L6-v2` (sentence-transformers) |
