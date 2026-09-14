@@ -1,6 +1,6 @@
 {
-  "generated": "2026-09-14T07:20:39+00:00",
-  "pipeline_run": "2026-09-14T07:14:02+00:00",
+  "generated": "2026-09-14T20:45:10+00:00",
+  "pipeline_run": "2026-09-14T20:44:48+00:00",
   "venues": {
     "conext": {
       "deadlines": [
@@ -456,13 +456,48 @@
         }
       ],
       "topics": [
-        "All types of computer networks, including mobile, wide-area, data center, embedded, home, and enterprise networks.",
-        "All types of wired and wireless technologies, including optics, radio, acoustic, and visible light-based communication.",
-        "All aspects of networks and networked systems, such as network architecture, packet-switched and circuit-switched hardware and software, virtualization, mobility, resource management, performance, energy consumption and environmental impact, topology, robustness, security, diagnosis, verification, privacy, economics, evolution, and interactions with applications.",
-        "All parts of the network life cycle, including planning, designing, building, operating, troubleshooting, migrations, and end-of-life.",
-        "All approaches and techniques applied to networking, including theory, analysis, experimentation, and AI/machine learning."
+        "acoustic communication",
+        "application interaction",
+        "circuit-switched hardware and software",
+        "computer network design and analysis",
+        "computer networks",
+        "data centers",
+        "embedded networks",
+        "end-of-life",
+        "energy consumption",
+        "enterprise networks",
+        "environmental impact",
+        "experimental approaches",
+        "home networks",
+        "machine learning-based techniques",
+        "mobile networks",
+        "mobility",
+        "network architecture",
+        "network deployment",
+        "network design",
+        "network diagnosis",
+        "network economics",
+        "network evolution",
+        "network migration",
+        "network operations",
+        "network planning",
+        "network robustness",
+        "network topology",
+        "network virtualization",
+        "optical technologies",
+        "packet-switched hardware and software",
+        "performance",
+        "privacy",
+        "radio technologies",
+        "resource management",
+        "security",
+        "theory",
+        "troubleshooting",
+        "verification",
+        "visible light-based communication",
+        "wide-area networks"
       ],
-      "url": "https://conferences.sigcomm.org/sigcomm/2027/cfp/"
+      "url": "https://conferences.sigcomm.org/sigcomm/2026/cfp/"
     }
   }
 }
