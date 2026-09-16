@@ -148,6 +148,12 @@ details li{margin-bottom:.2rem}
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+const fmt = s => esc(s)
+  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  .replace(/\n{2,}/g, '</p><p>')
+  .replace(/\n/g, '<br>');
+
+
 // The scorer combines the two signals as ALPHA*paper + (1-ALPHA)*cfp.
 // The bar shows each signal's actual contribution to the total, not the raw
 // scores, so a venue ranked mostly on its back catalogue looks different from
@@ -261,7 +267,7 @@ $('#ask-go').onclick = async () => {
     const d = await call('/api/ask', {question: q});
     out.innerHTML = `<div class="answer">
       ${d.grounded ? '' : '<p class="ungrounded">The corpus does not support an answer to this.</p>'}
-      <p>${esc(d.answer)}</p>
+      <p>${fmt(d.answer)}</p>
       ${d.sources.length ? `<ul class="sources">${d.sources.map(s => `<li>${
         s.doi ? `<a href="https://doi.org/${esc(s.doi)}">${esc(s.paper_title)}</a>` : esc(s.paper_title)
       } — ${esc(s.conference)} ${esc(s.year)}</li>`).join('')}</ul>` : ''}
@@ -275,6 +281,11 @@ $('#ask-go').onclick = async () => {
 fetch('/api/health').then(r => r.json()).then(h => {
   const names = h.conferences.map(c => h.display[c] || c);
   $('#scope').textContent = names.join(' · ');
+  // corpus Q&A runs over paper abstracts and is not part of this deployment
+  if (!h.rag_ready) {
+    $('#tab-ask').remove();
+    $('#panel-ask').remove();
+  }
   $('#venues').innerHTML =
     `<li class="empty">Paste an abstract or a few sentences about your work.</li>`;
 }).catch(() => {});

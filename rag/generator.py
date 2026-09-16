@@ -20,6 +20,7 @@ Here are the most relevant excerpts from the corpus:
 {context}
 
 Using ONLY the excerpts above, write a concise answer to the question. \
+Write in your own words. Do not quote the excerpts directly. \
 For every claim you make, cite the paper it comes from using [Paper Title, \
 Conference YEAR] format. If the excerpts do not contain enough information \
 to answer the question, say so explicitly — do not speculate or draw on \

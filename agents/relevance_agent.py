@@ -8,6 +8,7 @@ from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
 
 from config import GROQ_MODEL
+from core import usage
 from core.state import PipelineState, RecommendationEntry
 from core.tools import compute_embeddings
 
@@ -90,10 +91,10 @@ def _compute_cfp_score(
     the ranking, and the weight sweep declined monotonically as CFP weight
     rose. Averaging the top few trades a little sensitivity for stability.
 
-    Note this does NOT fix the topic-count bias: Venues list 10 to 22 topics
-    and a top-k statistic over so few still favours the longer lists (spread
-    ~0.04 on synthetic data, for max and mean-of-3 alike). Too small a range
-    for a quantile to help. Documented, not solved.
+    Note this does NOT fix the topic-count bias: venues list 10 to 49 topics,
+    so a top-k statistic covers a very different share of each list. A
+    quantile would make it comparable, but at 10 topics a decile is one
+    topic, which is worse. Documented, not solved.
     """
     if not topics:
         return 0.0, []
@@ -186,9 +187,12 @@ def _generate_rationale(
     )
 
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
+        with usage.timed() as t:
+            response = llm.invoke([HumanMessage(content=prompt)])
+        usage.record(response, source="rationale", latency_s=t.elapsed)
         text = (response.content or "").strip()
     except Exception as e:
+        usage.record(None, source="rationale", latency_s=0.0, ok=False)
         if strict:
             raise RationaleError(f"{conf_name}: {e}") from e
         print(f"  [relevance_agent] rationale error for {conf_name}: {e}")
