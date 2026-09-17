@@ -98,7 +98,7 @@ The query path is also exposed over HTTP, separately from the dashboard. The dat
 uvicorn api.app:app --port 8000
 ```
 
-Startup resolves every artifact that the endpoints need: registry, paper corpus, CFP topics, Chroma index. Missing artifacts cause startup to fail, catching misconfiguration early instead of producing runtime errors or silently re-embedding the corpus on the first request.
+Startup resolves every artifact the endpoints need: registry, paper corpus and CFP topics. Missing artifacts cause startup to fail, catching misconfiguration early rather than producing runtime errors. The search index is optional; without it `/api/ask` returns 503 and the frontend hides the tab.
 
 | Endpoint | Does |
 |---|---|
@@ -113,6 +113,7 @@ A single-page frontend is served at `/`, with no build step and no external requ
 
 **CFP snapshot.** CFP topics come from `data/cfp_export.json`, written by `scripts/export_cfp.py` from the last data-pipeline run and tracked in git so a fresh clone has them without scraping. It is a snapshot: topics and deadlines move with each conference cycle, and `/api/health` reports when it was generated. Re-run the export after refreshing data.
 
+**Deployment.** The query path runs on Google Cloud Run as a container: CPU-only PyTorch, the embedding model baked in, and `HF_HUB_OFFLINE` set so nothing is fetched at runtime. The image carries `data/enriched/query_corpus.parquet` (titles, venues, years, DOIs and embeddings) built by `scripts/build_query_corpus.py` and the CFP snapshot. The search index is not included, so corpus Q&A is local-only. The Groq key comes from Secret Manager via a service account whose only permission is reading it. The container runs as a non-root user. Scale-to-zero, so a cold start pays the model load (~30s) against ~150ms warm.
 
 #### Known Limitations
 
@@ -122,9 +123,9 @@ A single-page frontend is served at `/`, with no build step and no external requ
 - Cache check in `paper_agent` triggers a full re-scrape if any `(conference, year)` combination is missing; missing slices are not fetched incrementally.
 - Golden sets are small (10 relevance cases, 25 RAG cases) and graded by a single annotator. Swapping 5 cases for 10 moved NDCG@3 by ~0.05 on identical code, which is larger than most differences the weight sweep resolves; treat individual sweep points as indicative, not decisive.
 - Relevance grades are static, so the evaluation cannot reward the one thing CFP topics uniquely provide: what a venue wants *next* year. A venue that has shifted scope shows up in its CFP before it shows up in its published papers.
-- Venues list 5–49 CFP topics, so a top-3 mean covers 60% of one venue's list and 6% of another's. A quantile would make the statistic comparable (the same fix already applied to the paper score), but with some venues listing five items a decile is one topic, which is worse. Open issue.
+- Venues list 10–49 CFP topics, so a top-3 mean covers 30% of one venue's list and 6% of another's. A quantile would make the statistic comparable (the same fix already applied to the paper score), but at 10 topics a decile is one topic, which is worse. Open issue.
 - `MIN_K = 10` in the paper score reintroduces a small size bias for venues under ~100 papers. CoNEXT, the smallest at 106, sits just above that boundary.
-- CFP topic granularity varies by venue: some list short phrases, others full prose sentences. The top-3 similarity mean treats them as comparable when they aren't. E.g., SIGCOMM's 5 scope sentences score 0.98 lower (mean CFP score, 0–10, across the golden set) than the 20 short phrases a capped extraction previously produced, despite being the faithful reading of its CFP. Documented, not solved.
+- CFP topic granularity varies by venue: some list short topic phrases, others state their scope as prose, which embeds diffusely and matches specific descriptions poorly. SIGCOMM states its scope as five sentences. Those are normalised by hand into the technical terms those sentences name, via the registry override. Any venue writing its CFP the same way would need the same treatment. Documented, not solved.
 
 
 #### Evaluation
@@ -132,34 +133,33 @@ A single-page frontend is served at `/`, with no build step and no external requ
 Hand-rolled harness (`eval/`), with [DeepEval](https://github.com/confident-ai/deepeval) wired in for standard LLM metrics but not yet run.
 Two golden sets: 25 RAG cases (20 answerable, 5 unanswerable) and 10 expert-graded relevance cases (single annotator).
 
-**RAG pipeline** (threshold=0.60, top-k=5):
+**RAG pipeline** (threshold=0.60, top-k=5 in the eval, rag_pipeline.ask defaults to 8):
 
 | Metric | Value |
 |---|---|
 | answer_coverage | 0.750 |
 | false_answer_rate | 0.200 |
-| groundedness | 0.78–0.86 (4 runs) |
+| groundedness | 0.78–0.86 (5 runs) |
 
-`hit_rate` and `mrr` read 0 because every case in the RAG golden set carries an empty `relevant_chunk_ids`. Populating them means labelling which chunks answer each of the 25 questions, open work. `groundedness` is the only metric here that does not reproduce: answers come from a hosted model, and `temperature=0` does not make a served MoE bit-reproducible. Four runs on identical code and an identical corpus gave 0.782, 0.826, 0.836 and 0.861. Every other metric was identical across all four. A single figure would imply a precision this measurement does not have.
+`hit_rate` and `mrr` read 0 because every case in the RAG golden set carries an empty `relevant_chunk_ids`. Populating them means labelling which chunks answer each of the 25 questions, open work. `groundedness` is the only metric here that does not reproduce: answers come from a hosted model, and `temperature=0` does not make a served MoE bit-reproducible. Five runs on identical code and an identical corpus gave 0.782, 0.793, 0.826, 0.836 and 0.861. Every other metric was identical across all five. A single figure would imply a precision this measurement does not have.
 
-Sweeping the retrieval cutoff from 0.25 to 0.60 leaves answer_coverage at 0.750 and false_answer_rate at 0.200 unchanged; groundedness moves 0.787 / 0.828 / 0.808, which is inside the run-to-run range above. The cutoff is not the binding constraint at top_k=5
+The retrieval cutoff trades coverage for safety: at 0.25 the system answers 0.950 of questions but also every unanswerable one (false_answer_rate 1.000, groundedness 0.680); at 0.60 false answers fall to 0.200 and groundedness rises to 0.819, with the coverage falling from 0.950 to 0.750; at 0.80 it answers almost nothing. 0.60 is the production value. Groundedness carries the run-to-run variance noted above.
 
 **Conference relevance ranking** (paper_weight=0.85, cfp_weight=0.15):
 
 | Metric | Value |
 |---|---|
-| NDCG@3 | 0.912 |
-| Precision@3 | 0.867 |
+| NDCG@3 | 0.922 |
+| Precision@3 | 0.900 |
 
 **Corpus-size bias in the paper score.** The score was the mean of a venue's top-20 paper similarities, but a fixed count is a variable quantile. For the largest venue that's the top 2%, for the smallest the top 19%, so large venues got a bonus unrelated to fit. `scripts/check_size_bias.py` measures it by capping every venue to the same paper count. Measured on the eight-venue corpus, the largest held a top-3 slot in 9 of 10 golden cases and fell to 2.3 when capped. After switching to a fixed quantile (`TOP_Q = 0.10`) it reads 2 uncapped against 2.7 capped.
 
 
-**CFP topics add no measurable ranking value.** A weight sweep rises monotonically toward paper-only (0.784 at CFP-only against 0.932 at paper-only) and that held for two different CFP statistics, though the SIGCOMM case above shows extraction format also moves it. `ALPHA` is 0.85 rather than 1.0 deliberately. The cost is 0.912 against 0.932, smaller than the ~0.05 the golden set moves when cases are added or swapped, and CFP still supplies the rationale text and the dashboard's topic matches.
+**CFP topics add little measurable ranking value.** A weight sweep rises monotonically toward paper-only (0.790 at CFP-only against 0.932 at paper-only), and that held for two different CFP statistics, although the SIGCOMM case above shows extraction format moves it too. `ALPHA` is set to 0.85 rather than 1.0 deliberately. The cost is 0.922 against 0.932, a single golden case and far smaller than the ~0.05 the set moves when cases are added or swapped; CFP also supplies the rationale text and the dashboard's topic matches.
 
 
 ##### Known gaps in the harness
 
-- The threshold sweep varies groundedness but not coverage: `top_k=5` binds before the threshold does, so lowering the cutoff to 0.25 admits no additional answers. Sweeping `top_k` alongside the threshold would separate the two.
 - DeepEval is wired in but has never been run.
 
-Reports in [`eval/reports/`](eval/reports/). Each carries a config fingerprint covering the embedding model, `top_k`, `ALPHA` and CFP coverage, so runs made under different scoring do not silently compare. Ranking numbers reproduce exactly across both pinned and older pandas/numpy versions.
+Reports in `eval/reports/`. Each carries a config fingerprint covering the embedding model, `top_k`, `ALPHA` and CFP coverage, so runs made under different scoring do not silently compare. Every metric here reproduces exactly across pinned and older pandas/numpy versions except `groundedness`, which depends on a hosted generator.
