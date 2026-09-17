@@ -1,7 +1,7 @@
 aiohttp==3.13.5
 beautifulsoup4==4.14.3
 json_repair==0.59.10
-langchain_core==1.4.0
+langchain_core==1.6.3
 langchain_groq==1.1.2
 langchain_ollama==1.1.0
 langchain_text_splitters==1.1.2

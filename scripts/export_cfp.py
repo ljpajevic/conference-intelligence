@@ -56,10 +56,10 @@ def build_export() -> dict:
         }
     run = state.get("timestamp")
     if run:
-        run = datetime.fromisoformat(run).astimezone(timezone.utc).isoformat(timespec="seconds")
+        run = datetime.fromisoformat(run).astimezone(timezone.utc).date().isoformat()
 
     return {
-        "generated":    datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated":    datetime.now(timezone.utc).date().isoformat(),
         "pipeline_run": run,
         "venues":       venues,
     }
