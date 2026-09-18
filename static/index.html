@@ -117,7 +117,7 @@ details li{margin-bottom:.2rem}
 
 <div class="modes" role="tablist">
   <button role="tab" id="tab-rank" aria-selected="true" aria-controls="panel-rank">Rank venues</button>
-  <button role="tab" id="tab-ask" aria-selected="false" aria-controls="panel-ask">Ask the corpus</button>
+  <button role="tab" id="tab-ask" class="hidden" aria-selected="false" aria-controls="panel-ask">Ask the corpus</button>
 </div>
 
 <section id="panel-rank" role="tabpanel" aria-labelledby="tab-rank">
@@ -282,7 +282,9 @@ fetch('/api/health').then(r => r.json()).then(h => {
   const names = h.conferences.map(c => h.display[c] || c);
   $('#scope').textContent = names.join(' · ');
   // corpus Q&A runs over paper abstracts and is not part of this deployment
-  if (!h.rag_ready) {
+  if (h.rag_ready) {
+    $('#tab-ask').classList.remove('hidden');
+  } else {
     $('#tab-ask').remove();
     $('#panel-ask').remove();
   }
