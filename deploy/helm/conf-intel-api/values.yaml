@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: localhost:5001/conf-intel-api
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+port: 8080
+existingSecret: groq-api
+
+probes:
+  startup:   { periodSeconds: 5,  failureThreshold: 12 }
+  readiness: { periodSeconds: 10, failureThreshold: 3 }
+  liveness:  { periodSeconds: 20, failureThreshold: 3, timeoutSeconds: 2 }
+
+resources:
+  requests: { cpu: 500m, memory: 2Gi }
+  limits:   { cpu: "2",  memory: 2Gi }
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  seccompProfile: { type: RuntimeDefault }
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: ["ALL"] }
+
+writableDirs:
+  db: /app/db
+  cache: /app/data/cache
+  tmp: /tmp
+  raw: /app/data/raw
+  chunks: /app/data/chunks
